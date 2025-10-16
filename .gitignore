@@ -1,3 +1,6 @@
+assets
+# I have assets/models inside android/app/src/main
+
 # OSX
 #
 .DS_Store
