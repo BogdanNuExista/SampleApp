@@ -19,7 +19,7 @@ export function FlashcardItem({ card, onPress, onToggleFavorite }: FlashcardItem
         />
       ) : (
         <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-          <Text style={styles.placeholderText}>No Art</Text>
+          <Text style={styles.placeholderText}>No Snapshot</Text>
         </View>
       )}
       <View style={styles.textContent}>
@@ -29,13 +29,18 @@ export function FlashcardItem({ card, onPress, onToggleFavorite }: FlashcardItem
         <Text style={styles.description} numberOfLines={2}>
           {card.description}
         </Text>
+        {card.mood ? (
+          <View style={styles.tagRow}>
+            <Text style={styles.moodTag}>{card.mood.toUpperCase()}</Text>
+          </View>
+        ) : null}
         <View style={styles.metaRow}>
           <Text style={styles.metaLabel}>
             Added {new Date(card.createdAt).toLocaleDateString()}
           </Text>
           <Pressable onPress={() => onToggleFavorite(card)}>
             <Text style={[styles.favorite, card.favorite && styles.favoriteActive]}>
-              {card.favorite ? '★' : '☆'}
+              {card.favorite ? '📌' : '📍'}
             </Text>
           </Pressable>
         </View>
@@ -80,6 +85,20 @@ const styles = StyleSheet.create({
   description: {
     color: palette.silver,
     fontSize: 13,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  moodTag: {
+    backgroundColor: '#1e1b4b',
+    color: palette.neonPink,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   metaRow: {
     flexDirection: 'row',

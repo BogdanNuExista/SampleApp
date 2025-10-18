@@ -20,7 +20,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const tabIcons: Record<keyof RootTabParamList, string> = {
   Home: '🎯',
   Arcade: '🕹️',
-  Flashcards: '📚',
+  Flashcards: '�',
   Profile: '👤',
 };
 
@@ -69,7 +69,7 @@ export function RootNavigator() {
         <Tab.Screen
           name="Flashcards"
           component={FlashcardsScreen}
-          options={{ title: 'Codex' }}
+          options={{ title: 'Journal' }}
         />
         <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
       </Tab.Navigator>

@@ -1,14 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { EmptyState } from '../components/EmptyState';
 import { FlashcardEditorModal } from '../components/FlashcardEditorModal';
 import { FlashcardItem } from '../components/FlashcardItem';
-import { EmptyState } from '../components/EmptyState';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 
 const icons = {
   crystal: require('../../assets/icon_pack/128/gemBlue.png'),
-  card: require('../../assets/icon_pack/64/tome.png'),
 };
 
 export function FlashcardsScreen() {
@@ -31,19 +30,21 @@ export function FlashcardsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Lore Vault</Text>
-          <Text style={styles.subtitle}>Your captured knowledge flashcards live here.</Text>
+          <Text style={styles.title}>Neon Journal</Text>
+          <Text style={styles.subtitle}>
+            Chronicle your wins, realizations, and moods as you power through the arcade.
+          </Text>
         </View>
         <Pressable style={styles.addButton} onPress={() => setEditorVisible(true)}>
-          <Text style={styles.addButtonText}>+ New</Text>
+          <Text style={styles.addButtonText}>+ Entry</Text>
         </Pressable>
       </View>
 
       {flashcards.length === 0 ? (
         <EmptyState
           icon={icons.crystal}
-          title="Start your codex"
-          subtitle="Add study flashcards with quick photo references and memory hooks."
+          title="Begin your codex journal"
+          subtitle="Log reflections, attach photos, and tag the mood of each moment."
         />
       ) : (
         <FlatList
@@ -69,21 +70,23 @@ export function FlashcardsScreen() {
           setEditorVisible(false);
           setSelectedId(null);
         }}
-        onSubmit={({ title, description, imageBase64 }) => {
+        onSubmit={({ title, description, imageBase64, mood }) => {
           if (selectedCard) {
             updateFlashcard(selectedCard.id, {
               title,
               description,
               imageBase64,
+              mood,
               lastReviewedAt: Date.now(),
             });
           } else {
-            addFlashcard({ title, description, imageBase64 });
+            addFlashcard({ title, description, imageBase64, mood });
           }
         }}
         defaultTitle={selectedCard?.title}
         defaultDescription={selectedCard?.description}
         defaultImageBase64={selectedCard?.imageBase64}
+        defaultMood={selectedCard?.mood}
       />
     </View>
   );

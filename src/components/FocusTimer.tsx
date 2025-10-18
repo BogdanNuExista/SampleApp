@@ -1,8 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  pickRandomSkeletonAnimation,
+  skeletonAnimations,
+  SkeletonAnimationKey,
+} from '../assets/skeletonAnimations';
+import { SkeletonSprite } from './SkeletonSprite';
 import { palette } from '../theme/colors';
 
-const PRESETS = [5, 15, 25, 45];
+const PRESETS = [1, 5, 15, 25, 45];
 
 export type FocusTimerProps = {
   onSessionComplete: (durationMinutes: number) => void;
@@ -14,12 +20,14 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState<number>(selectedMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setRemainingSeconds(selectedMinutes * 60);
     setElapsedSeconds(0);
     setIsRunning(false);
+    setActiveAnimation(null);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -43,6 +51,7 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
           setIsRunning(false);
           setElapsedSeconds(selectedMinutes * 60);
           onSessionComplete(selectedMinutes);
+          setActiveAnimation(null);
           return 0;
         }
         return prev - 1;
@@ -69,6 +78,20 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
       }
     };
   }, []);
+
+  const handleToggleRunning = () => {
+    setIsRunning(prev => {
+      if (prev) {
+        return false;
+      }
+
+      if (remainingSeconds === selectedMinutes * 60 || remainingSeconds === 0) {
+        setActiveAnimation(current => pickRandomSkeletonAnimation(current ?? undefined));
+      }
+
+      return true;
+    });
+  };
 
   const minutes = Math.floor(remainingSeconds / 60)
     .toString()
@@ -129,10 +152,28 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
         </Text>
       </View>
 
+      {activeAnimation ? (
+        <View style={styles.animationStage}>
+          <SkeletonSprite
+            frames={skeletonAnimations[activeAnimation].frames}
+            fps={skeletonAnimations[activeAnimation].fps}
+            paused={!isRunning}
+            size={isDarkMode ? 160 : 150}
+          />
+          <Text style={styles.animationCaption}>
+            {skeletonAnimations[activeAnimation].label}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.animationStagePlaceholder}>
+          <Text style={styles.animationPlaceholderText}>Start a run to summon your retro guardian.</Text>
+        </View>
+      )}
+
       <View style={styles.controlsRow}>
         <Pressable
           style={[styles.controlButton, isRunning && styles.controlButtonStop]}
-          onPress={() => setIsRunning(prev => !prev)}
+          onPress={handleToggleRunning}
         >
           <Text style={styles.controlButtonText}>
             {isRunning ? 'Pause' : 'Start'}
@@ -148,6 +189,7 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
             setIsRunning(false);
             setRemainingSeconds(selectedMinutes * 60);
             setElapsedSeconds(0);
+            setActiveAnimation(null);
           }}
         >
           <Text style={styles.controlButtonText}>Reset</Text>
@@ -192,6 +234,31 @@ const styles = StyleSheet.create({
   timerFace: {
     alignItems: 'center',
     gap: 8,
+  },
+  animationStage: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  animationStagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10152d',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    minHeight: 200,
+  },
+  animationPlaceholderText: {
+    color: '#64748b',
+    textAlign: 'center',
+    maxWidth: 220,
+  },
+  animationCaption: {
+    color: palette.silver,
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
   progressTrack: {
     width: '100%',

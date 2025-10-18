@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { FocusTimer } from '../components/FocusTimer';
 import { StatBadge } from '../components/StatBadge';
 import { useGame } from '../context/GameContext';
@@ -83,87 +83,93 @@ export function HomeScreen() {
     completeSession,
   } = useGame();
 
+  const recentSessions = focusSessions.slice(0, 5);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerText}>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.playerName}>{profileName}</Text>
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={styles.listContent}
+      data={recentSessions}
+      keyExtractor={item => item.id}
+      ListHeaderComponent={
+        <View style={styles.listHeader}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <Text style={styles.greeting}>Welcome back,</Text>
+              <Text style={styles.playerName}>{profileName}</Text>
+            </View>
+            <View
+              style={[
+                styles.skinBadge,
+                {
+                  backgroundColor:
+                    skinVariants[activeSkin]?.backgroundColor ?? '#1f2937',
+                  borderColor:
+                    skinVariants[activeSkin]?.borderColor ?? '#38bdf822',
+                },
+              ]}
+            >
+              <Text style={styles.skinEmoji}>{icons.cabinet}</Text>
+              <Text style={styles.skinLabel}>{activeSkin.toUpperCase()}</Text>
+            </View>
+          </View>
+
+          <View style={styles.statsGrid}>
+            <StatBadge
+              label="Coins"
+              value={formatCoins(coins)}
+              icon={<Text style={styles.statEmoji}>{icons.coin}</Text>}
+            />
+            <StatBadge
+              label="Focus streak"
+              value={formatStreak(streak)}
+              icon={<Text style={styles.statEmoji}>{icons.streak}</Text>}
+            />
+            <StatBadge
+              label="Best session"
+              value={formatBestSession(bestSessionMinutes)}
+              icon={<Text style={styles.statEmoji}>{icons.time}</Text>}
+            />
+          </View>
+
+          <Text style={styles.sectionTitle}>Arcade Focus Run</Text>
+          <FocusTimer
+            isDarkMode
+            onSessionComplete={minutes => {
+              completeSession(minutes);
+            }}
+          />
+
+          <Text style={styles.sectionTitle}>Recent Sessions</Text>
         </View>
-        <View
-          style={[
-            styles.skinBadge,
-            {
-              backgroundColor:
-                skinVariants[activeSkin]?.backgroundColor ?? '#1f2937',
-              borderColor: skinVariants[activeSkin]?.borderColor ?? '#38bdf822',
-            },
-          ]}
-        >
-          <Text style={styles.skinEmoji}>{icons.cabinet}</Text>
-          <Text style={styles.skinLabel}>{activeSkin.toUpperCase()}</Text>
-        </View>
-      </View>
-
-      <View style={styles.statsGrid}>
-        <StatBadge
-          label="Coins"
-          value={formatCoins(coins)}
-          icon={<Text style={styles.statEmoji}>{icons.coin}</Text>}
-        />
-        <StatBadge
-          label="Focus streak"
-          value={formatStreak(streak)}
-          icon={<Text style={styles.statEmoji}>{icons.streak}</Text>}
-        />
-        <StatBadge
-          label="Best session"
-          value={formatBestSession(bestSessionMinutes)}
-          icon={<Text style={styles.statEmoji}>{icons.time}</Text>}
-        />
-      </View>
-
-      <Text style={styles.sectionTitle}>Arcade Focus Run</Text>
-      <FocusTimer
-        isDarkMode
-        onSessionComplete={minutes => {
-          completeSession(minutes);
-        }}
-      />
-
-      <Text style={styles.sectionTitle}>Recent Sessions</Text>
-      {focusSessions.length === 0 ? (
+      }
+      ListEmptyComponent={
         <View style={styles.emptyHistory}>
           <Text style={styles.emptyHeadline}>No runs logged yet</Text>
           <Text style={styles.emptyBody}>
             Start a focus run to earn retro coins and climb your personal leaderboard.
           </Text>
         </View>
-      ) : (
-        <FlatList
-          data={focusSessions.slice(0, 5)}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.historyList}
-          renderItem={({ item }) => (
-            <View style={styles.historyCard}>
-              <View>
-                <Text style={styles.historyTitle}>
-                  {new Date(item.completedAt).toLocaleDateString()} ·{' '}
-                  {new Date(item.completedAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-                <Text style={styles.historySubtitle}>
-                  {item.durationMinutes} minute sprint · +{item.coinsEarned} coins
-                </Text>
-              </View>
-              <Text style={styles.historyStreak}>{item.streakAchieved}x streak</Text>
-            </View>
-          )}
-        />
+      }
+      ItemSeparatorComponent={() => <View style={styles.historySeparator} />}
+      renderItem={({ item }) => (
+        <View style={styles.historyCard}>
+          <View>
+            <Text style={styles.historyTitle}>
+              {new Date(item.completedAt).toLocaleDateString()} ·{' '}
+              {new Date(item.completedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+            <Text style={styles.historySubtitle}>
+              {item.durationMinutes} minute sprint · +{item.coinsEarned} coins
+            </Text>
+          </View>
+          <Text style={styles.historyStreak}>{item.streakAchieved}x streak</Text>
+        </View>
       )}
-    </ScrollView>
+    />
   );
 }
 
@@ -172,10 +178,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.midnight,
   },
-  content: {
+  listContent: {
     padding: 20,
     paddingBottom: 40,
+  },
+  listHeader: {
     gap: 20,
+    marginBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -229,6 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 20,
     gap: 8,
+    marginTop: 12,
   },
   emptyHeadline: {
     color: palette.softWhite,
@@ -239,8 +249,8 @@ const styles = StyleSheet.create({
     color: palette.silver,
     fontSize: 13,
   },
-  historyList: {
-    gap: 12,
+  historySeparator: {
+    height: 12,
   },
   historyCard: {
     backgroundColor: '#111827',

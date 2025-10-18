@@ -11,16 +11,23 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { JournalMood } from '../context/GameContext';
 import { RankedPrediction, useOnnxClassifier } from '../hooks/useOnnxClassifier';
 import { palette } from '../theme/colors';
 
 export type FlashcardEditorModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (input: { title: string; description: string; imageBase64?: string }) => void;
+  onSubmit: (input: {
+    title: string;
+    description: string;
+    imageBase64?: string;
+    mood?: JournalMood;
+  }) => void;
   defaultTitle?: string;
   defaultDescription?: string;
   defaultImageBase64?: string;
+  defaultMood?: JournalMood;
 };
 
 const pickerOptions = {
@@ -30,6 +37,14 @@ const pickerOptions = {
   maxHeight: 640,
 };
 
+const moodOptions: Array<{ id: JournalMood; label: string; emoji: string; hint: string }> = [
+  { id: 'reflective', label: 'Reflective', emoji: '🌓', hint: 'Deep in thought' },
+  { id: 'grateful', label: 'Grateful', emoji: '🌟', hint: 'Appreciating the wins' },
+  { id: 'energized', label: 'Energized', emoji: '⚡', hint: 'Ready to tackle more' },
+  { id: 'curious', label: 'Curious', emoji: '🔍', hint: 'Exploring ideas' },
+  { id: 'victorious', label: 'Victorious', emoji: '🏆', hint: 'Celebrating progress' },
+];
+
 export function FlashcardEditorModal({
   visible,
   onClose,
@@ -37,6 +52,7 @@ export function FlashcardEditorModal({
   defaultDescription = '',
   defaultTitle = '',
   defaultImageBase64,
+  defaultMood,
 }: FlashcardEditorModalProps) {
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
@@ -47,6 +63,7 @@ export function FlashcardEditorModal({
   const [predictions, setPredictions] = useState<RankedPrediction[]>([]);
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
+  const [mood, setMood] = useState<JournalMood | undefined>(defaultMood);
 
   const { classifyImage, isModelLoading, isModelReady, modelError } = useOnnxClassifier();
 
@@ -58,7 +75,8 @@ export function FlashcardEditorModal({
     setPredictions([]);
     setPredictionError(null);
     setIsClassifying(false);
-  }, [defaultDescription, defaultImageBase64, defaultTitle, visible]);
+    setMood(defaultMood);
+  }, [defaultDescription, defaultImageBase64, defaultMood, defaultTitle, visible]);
 
   const handlePickImage = async () => {
     const result = await launchImageLibrary(pickerOptions);
@@ -103,8 +121,10 @@ export function FlashcardEditorModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <ScrollView contentContainerStyle={styles.sheet}>
-          <Text style={styles.sheetTitle}>Craft a new flashcard</Text>
-          <Text style={styles.helper}>Attach a study note for your next arcade run.</Text>
+          <Text style={styles.sheetTitle}>Log a journal memory</Text>
+          <Text style={styles.helper}>
+            Capture how you feel, what you learned, and keep the story in your codex.
+          </Text>
 
           <View style={styles.field}>
             <Text style={styles.label}>Title</Text>
@@ -114,23 +134,51 @@ export function FlashcardEditorModal({
                 setHasEditedTitle(true);
                 setTitle(value);
               }}
-              placeholder="e.g. Cybernetic Circuits"
+              placeholder="e.g. Neon skyline reflections"
               placeholderTextColor="#9ca3af"
               style={styles.input}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Hint / Description</Text>
+            <Text style={styles.label}>Entry</Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Add a quick memory hook..."
+              placeholder="Write the beats of your day, a lesson, or a victory..."
               placeholderTextColor="#9ca3af"
               style={[styles.input, styles.inputMultiline]}
               multiline
               numberOfLines={4}
             />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Mood tracker</Text>
+            <View style={styles.moodRow}>
+              {moodOptions.map(option => {
+                const isActive = option.id === mood;
+                return (
+                  <Pressable
+                    key={option.id}
+                    style={[styles.moodChip, isActive && styles.moodChipActive]}
+                    onPress={() => setMood(option.id)}
+                  >
+                    <Text style={styles.moodEmoji}>{option.emoji}</Text>
+                    <Text style={[styles.moodLabel, isActive && styles.moodLabelActive]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {mood ? (
+              <Text style={styles.moodHint}>
+                {moodOptions.find(option => option.id === mood)?.hint}
+              </Text>
+            ) : (
+              <Text style={styles.moodHint}>Tag the energy behind this moment.</Text>
+            )}
           </View>
 
           <View style={styles.previewBox}>
@@ -200,6 +248,7 @@ export function FlashcardEditorModal({
                   title: title.trim(),
                   description: description.trim(),
                   imageBase64,
+                  mood,
                 });
                 onClose();
               }}
@@ -237,6 +286,42 @@ const styles = StyleSheet.create({
   },
   field: {
     gap: 8,
+  },
+  moodRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  moodChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    backgroundColor: '#111827',
+  },
+  moodChipActive: {
+    borderColor: palette.neonPink,
+    backgroundColor: '#31183a',
+  },
+  moodEmoji: {
+    fontSize: 16,
+  },
+  moodLabel: {
+    color: '#94a3b8',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  moodLabelActive: {
+    color: palette.neonPink,
+    fontWeight: '700',
+  },
+  moodHint: {
+    color: '#64748b',
+    fontSize: 12,
   },
   label: {
     color: palette.neonPink,

@@ -16,6 +16,8 @@ export type FocusSession = {
   streakAchieved: number;
 };
 
+export type JournalMood = 'reflective' | 'grateful' | 'energized' | 'curious' | 'victorious';
+
 export type Flashcard = {
   id: string;
   title: string;
@@ -24,6 +26,7 @@ export type Flashcard = {
   createdAt: number;
   lastReviewedAt?: number;
   favorite?: boolean;
+  mood?: JournalMood;
 };
 
 export type GameState = {
@@ -61,11 +64,19 @@ type Action =
   | { type: 'COMPLETE_SESSION'; payload: { durationMinutes: number } }
   | {
       type: 'ADD_FLASHCARD';
-      payload: { title: string; description: string; imageBase64?: string };
+      payload: {
+        title: string;
+        description: string;
+        imageBase64?: string;
+        mood?: JournalMood;
+      };
     }
   | {
       type: 'UPDATE_FLASHCARD';
-      payload: { id: string; updates: Partial<Omit<Flashcard, 'id' | 'createdAt'>> };
+      payload: {
+        id: string;
+        updates: Partial<Omit<Flashcard, 'id' | 'createdAt'>>;
+      };
     }
   | { type: 'TOGGLE_FLASHCARD_FAVORITE'; payload: { id: string } }
   | { type: 'RECORD_ARCADE_SCORE'; payload: { score: number } }
@@ -116,8 +127,8 @@ function reducer(state: GameState, action: Action): GameState {
           : daysDiff === 1
           ? state.streak + 1
           : 1;
-      const baseReward = Math.max(10, Math.round(durationMinutes * 5));
-      const streakBonus = newStreak * 2;
+  const baseReward = Math.max(3, Math.round(durationMinutes * 1.5));
+  const streakBonus = newStreak > 0 ? Math.floor(newStreak / 3) : 0;
       const coinsEarned = baseReward + streakBonus;
       const focusSession: FocusSession = {
         id: generateId(),
@@ -139,7 +150,7 @@ function reducer(state: GameState, action: Action): GameState {
       };
     }
     case 'ADD_FLASHCARD': {
-      const { title, description, imageBase64 } = action.payload;
+      const { title, description, imageBase64, mood } = action.payload;
       const flashcard: Flashcard = {
         id: generateId(),
         title,
@@ -147,6 +158,7 @@ function reducer(state: GameState, action: Action): GameState {
         imageBase64,
         createdAt: Date.now(),
         favorite: false,
+        mood,
       };
       return { ...state, flashcards: [flashcard, ...state.flashcards] };
     }
@@ -173,7 +185,7 @@ function reducer(state: GameState, action: Action): GameState {
     case 'RECORD_ARCADE_SCORE': {
       const { score } = action.payload;
       const isNewHighScore = score > state.arcadeHighScore;
-      const bonusCoins = Math.max(5, Math.floor(score / 5));
+      const bonusCoins = Math.max(0, Math.floor(score / 15));
       return {
         ...state,
         arcadeHighScore: isNewHighScore ? score : state.arcadeHighScore,
@@ -220,6 +232,7 @@ export type GameContextValue = {
     title: string;
     description: string;
     imageBase64?: string;
+    mood?: JournalMood;
   }) => void;
   updateFlashcard: (
     id: string,
