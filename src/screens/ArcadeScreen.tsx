@@ -1,13 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
+import { NeonChessArena } from '../components/NeonChessArena';
 
 const skinsCatalog = [
   {
@@ -38,7 +33,7 @@ const laneLabels: Record<Lane, string> = {
   2: 'Right',
 };
 
-type ArcadeGameId = 'lanes' | 'reaction';
+type ArcadeGameId = 'lanes' | 'reaction' | 'chess';
 
 const arcadeGames: Array<{
   id: ArcadeGameId;
@@ -57,6 +52,12 @@ const arcadeGames: Array<{
     title: 'Neon Reaction Pulse',
     subtitle: 'Wait for the flash, then tap faster than the synth beat.',
     icon: '⚡',
+  },
+  {
+    id: 'chess',
+    title: 'Cosmic Chess Gauntlet',
+    subtitle: 'Unlock new difficulties, earn loot, and outmaneuver the synth AI.',
+    icon: '♞',
   },
 ];
 
@@ -114,9 +115,11 @@ export function ArcadeScreen() {
           highScore={arcadeHighScore}
           recordScore={recordArcadeScore}
         />
-      ) : (
+      ) : null}
+      {activeGame === 'reaction' ? (
         <ReactionPulseArena recordScore={recordArcadeScore} />
-      )}
+      ) : null}
+      {activeGame === 'chess' ? <NeonChessArena /> : null}
 
       <Text style={styles.sectionTitle}>Arcade Cabinet Store</Text>
       <Text style={styles.sectionSubtitle}>

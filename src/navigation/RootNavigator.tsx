@@ -1,27 +1,34 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ArcadeScreen } from '../screens/ArcadeScreen';
 import { FlashcardsScreen } from '../screens/FlashcardsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { InventoryScreen } from '../screens/InventoryScreen';
 import { palette } from '../theme/colors';
 
 export type RootTabParamList = {
   Home: undefined;
   Arcade: undefined;
+  Inventory: undefined;
   Flashcards: undefined;
   Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-const tabIcons: Record<keyof RootTabParamList, string> = {
-  Home: '🎯',
-  Arcade: '🕹️',
-  Flashcards: '�',
-  Profile: '👤',
+type TabIconConfig = {
+  icon: string | ImageSourcePropType;
+};
+
+const tabIcons: Record<keyof RootTabParamList, TabIconConfig> = {
+  Home: { icon: '🎯' },
+  Arcade: { icon: '🕹️' },
+  Inventory: { icon: require('../../assets/icon_pack/128/backpack.png') },
+  Flashcards: { icon: '📓' },
+  Profile: { icon: '👤' },
 };
 
 const navTheme: Theme = {
@@ -55,17 +62,28 @@ export function RootNavigator() {
           },
           tabBarActiveTintColor: palette.neonPink,
           tabBarInactiveTintColor: '#9ca3af',
-          tabBarIcon: ({ color }) => (
-            <View style={styles.iconWrapper}>
-              <Text style={[styles.iconText, { color }]}>
-                {tabIcons[route.name as keyof RootTabParamList]}
-              </Text>
-            </View>
-          ),
+          tabBarIcon: ({ color }) => {
+            const config = tabIcons[route.name as keyof RootTabParamList];
+            const icon = config.icon;
+            return (
+              <View style={styles.iconWrapper}>
+                {typeof icon === 'string' ? (
+                  <Text style={[styles.iconText, { color }]}>{icon}</Text>
+                ) : (
+                  <Image source={icon} style={[styles.iconImage, { tintColor: color }]} />
+                )}
+              </View>
+            );
+          },
         })}
       >
         <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Focus' }} />
         <Tab.Screen name="Arcade" component={ArcadeScreen} options={{ title: 'Arcade' }} />
+        <Tab.Screen
+          name="Inventory"
+          component={InventoryScreen}
+          options={{ title: 'Inventory' }}
+        />
         <Tab.Screen
           name="Flashcards"
           component={FlashcardsScreen}
@@ -88,5 +106,9 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 18,
+  },
+  iconImage: {
+    width: 22,
+    height: 22,
   },
 });

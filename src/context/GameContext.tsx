@@ -7,6 +7,10 @@ import React, {
   useReducer,
   useState,
 } from 'react';
+import {
+  InventoryCatalogItem,
+  pickRandomInventoryItem,
+} from '../constants/inventoryCatalog';
 
 export type FocusSession = {
   id: string;
@@ -29,6 +33,41 @@ export type Flashcard = {
   mood?: JournalMood;
 };
 
+export type ChessDifficulty = 'easy' | 'normal' | 'hard';
+type ChessOutcome = 'win' | 'loss';
+type ChessRecord = {
+  wins: number;
+  losses: number;
+};
+
+export type ChessUnlockState = {
+  normal: boolean;
+  hard: boolean;
+};
+
+type ChessProgress = {
+  stats: Record<ChessDifficulty, ChessRecord>;
+  unlocked: ChessUnlockState;
+  totalGames: number;
+};
+
+export type InventoryItem = InventoryCatalogItem & {
+  obtainedAt: number;
+};
+
+export type ChessMatchRequest = {
+  difficulty: ChessDifficulty;
+  outcome: 'win' | 'loss' | 'draw';
+};
+
+export type ChessMatchResolution = {
+  coinsEarned: number;
+  reward: InventoryCatalogItem | null;
+  isRewardNew: boolean;
+  unlocks: ChessUnlockState;
+  newlyUnlocked: ChessUnlockState;
+};
+
 export type GameState = {
   profileName: string;
   coins: number;
@@ -41,9 +80,26 @@ export type GameState = {
   arcadeHighScore: number;
   ownedSkins: string[];
   activeSkin: string;
+  chess: ChessProgress;
+  inventory: InventoryItem[];
 };
 
 const STORAGE_KEY = 'retro-arcade-study-state-v1';
+const createInitialChessState = (): ChessProgress => ({
+  stats: {
+    easy: { wins: 0, losses: 0 },
+    normal: { wins: 0, losses: 0 },
+    hard: { wins: 0, losses: 0 },
+  },
+  unlocked: { normal: false, hard: false },
+  totalGames: 0,
+});
+
+const CHESS_REWARD_COINS: Record<ChessDifficulty, number> = {
+  easy: 12,
+  normal: 24,
+  hard: 40,
+};
 
 const initialState: GameState = {
   profileName: 'Player One',
@@ -57,6 +113,8 @@ const initialState: GameState = {
   arcadeHighScore: 0,
   ownedSkins: ['neon'],
   activeSkin: 'neon',
+  chess: createInitialChessState(),
+  inventory: [],
 };
 
 type Action =
@@ -89,6 +147,15 @@ type Action =
   | {
       type: 'SET_ACTIVE_SKIN';
       payload: { skinId: string };
+    }
+  | {
+      type: 'COMPLETE_CHESS_GAME';
+      payload: {
+        coinsEarned: number;
+        nextStats: Record<ChessDifficulty, ChessRecord>;
+        nextUnlocked: ChessUnlockState;
+        rewardItem?: InventoryItem | null;
+      };
     }
   | { type: 'HYDRATE'; payload: GameState };
 
@@ -224,14 +291,78 @@ function reducer(state: GameState, action: Action): GameState {
       }
       return { ...state, activeSkin: skinId };
     }
-    case 'HYDRATE':
+    case 'COMPLETE_CHESS_GAME': {
+      const { coinsEarned, nextStats, nextUnlocked, rewardItem } = action.payload;
+      const inventory = rewardItem
+        ? [...state.inventory, rewardItem]
+        : state.inventory;
       return {
         ...state,
-        ...action.payload,
-        focusSessions: action.payload.focusSessions
-          ? action.payload.focusSessions.slice(0, 5)
-          : [],
+        coins: state.coins + coinsEarned,
+        chess: {
+          stats: {
+            easy: { ...nextStats.easy },
+            normal: { ...nextStats.normal },
+            hard: { ...nextStats.hard },
+          },
+          unlocked: { ...nextUnlocked },
+          totalGames: state.chess.totalGames + 1,
+        },
+        inventory,
       };
+    }
+    case 'HYDRATE': {
+      const persisted = action.payload;
+      const focusSessions = persisted.focusSessions
+        ? persisted.focusSessions.slice(0, 5)
+        : [];
+      const persistedChess = persisted.chess;
+      const stats: Record<ChessDifficulty, ChessRecord> = {
+        easy: {
+          wins:
+            persistedChess?.stats?.easy?.wins ??
+            initialState.chess.stats.easy.wins,
+          losses:
+            persistedChess?.stats?.easy?.losses ??
+            initialState.chess.stats.easy.losses,
+        },
+        normal: {
+          wins:
+            persistedChess?.stats?.normal?.wins ??
+            initialState.chess.stats.normal.wins,
+          losses:
+            persistedChess?.stats?.normal?.losses ??
+            initialState.chess.stats.normal.losses,
+        },
+        hard: {
+          wins:
+            persistedChess?.stats?.hard?.wins ??
+            initialState.chess.stats.hard.wins,
+          losses:
+            persistedChess?.stats?.hard?.losses ??
+            initialState.chess.stats.hard.losses,
+        },
+      };
+      const unlocked: ChessUnlockState = {
+        normal:
+          Boolean(persistedChess?.unlocked?.normal) || stats.easy.wins >= 3,
+        hard:
+          Boolean(persistedChess?.unlocked?.hard) || stats.normal.wins >= 10,
+      };
+
+      return {
+        ...state,
+        ...persisted,
+        focusSessions,
+        chess: {
+          stats,
+          unlocked,
+          totalGames:
+            persistedChess?.totalGames ?? initialState.chess.totalGames,
+        },
+        inventory: persisted.inventory ?? [],
+      };
+    }
     default:
       return state;
   }
@@ -258,6 +389,7 @@ export type GameContextValue = {
   spendCoins: (amount: number) => void;
   unlockSkin: (skinId: string, price: number) => boolean;
   setActiveSkin: (skinId: string) => void;
+  finishChessMatch: (match: ChessMatchRequest) => ChessMatchResolution;
 };
 
 const GameContext = createContext<GameContextValue | undefined>(undefined);
@@ -271,8 +403,13 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY);
         if (saved) {
-          const parsed: GameState = JSON.parse(saved);
-          dispatch({ type: 'HYDRATE', payload: { ...initialState, ...parsed } });
+          const parsed = JSON.parse(saved) as Partial<GameState>;
+          const baseline: GameState = {
+            ...initialState,
+            chess: createInitialChessState(),
+            inventory: [],
+          };
+          dispatch({ type: 'HYDRATE', payload: { ...baseline, ...parsed } });
         }
       } catch (error) {
         console.warn('Failed to load saved state', error);
@@ -311,6 +448,73 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       return true;
     };
 
+  const finishChessMatch = ({ difficulty, outcome }: ChessMatchRequest): ChessMatchResolution => {
+      const normalizedOutcome: ChessOutcome = outcome === 'win' ? 'win' : 'loss';
+      const coinsEarned =
+        normalizedOutcome === 'win' ? CHESS_REWARD_COINS[difficulty] : 0;
+
+      const nextStats: Record<ChessDifficulty, ChessRecord> = {
+        easy: { ...state.chess.stats.easy },
+        normal: { ...state.chess.stats.normal },
+        hard: { ...state.chess.stats.hard },
+      };
+
+      if (normalizedOutcome === 'win') {
+        nextStats[difficulty] = {
+          ...nextStats[difficulty],
+          wins: nextStats[difficulty].wins + 1,
+        };
+      } else {
+        nextStats[difficulty] = {
+          ...nextStats[difficulty],
+          losses: nextStats[difficulty].losses + 1,
+        };
+      }
+
+      const rewardEligible =
+        normalizedOutcome === 'win' && (difficulty === 'normal' || difficulty === 'hard');
+      const catalogReward: InventoryCatalogItem | null = rewardEligible
+        ? pickRandomInventoryItem()
+        : null;
+
+      const alreadyOwned = catalogReward
+        ? state.inventory.some(item => item.id === catalogReward.id)
+        : false;
+      const rewardItem: InventoryItem | null =
+        catalogReward && !alreadyOwned
+          ? { ...catalogReward, obtainedAt: Date.now() }
+          : null;
+
+      const nextUnlocked: ChessUnlockState = {
+        normal:
+          state.chess.unlocked.normal || nextStats.easy.wins >= 3,
+        hard: state.chess.unlocked.hard || nextStats.normal.wins >= 10,
+      };
+
+      dispatch({
+        type: 'COMPLETE_CHESS_GAME',
+        payload: {
+          coinsEarned,
+          nextStats,
+          nextUnlocked,
+          rewardItem,
+        },
+      });
+
+      const newlyUnlocked: ChessUnlockState = {
+        normal: !state.chess.unlocked.normal && nextUnlocked.normal,
+        hard: !state.chess.unlocked.hard && nextUnlocked.hard,
+      };
+
+      return {
+        coinsEarned,
+        reward: catalogReward,
+        isRewardNew: Boolean(rewardItem),
+        unlocks: nextUnlocked,
+        newlyUnlocked,
+      };
+    };
+
     return {
       state,
       isHydrated,
@@ -329,6 +533,7 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       unlockSkin,
       setActiveSkin: skinId =>
         dispatch({ type: 'SET_ACTIVE_SKIN', payload: { skinId } }),
+      finishChessMatch,
     };
   }, [state, isHydrated]);
 
