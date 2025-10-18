@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import {
   InventoryCatalogItem,
+  getInventoryItemById,
   pickRandomInventoryItem,
 } from '../constants/inventoryCatalog';
 
@@ -350,6 +351,29 @@ function reducer(state: GameState, action: Action): GameState {
           Boolean(persistedChess?.unlocked?.hard) || stats.normal.wins >= 10,
       };
 
+      const inventory: InventoryItem[] = Array.isArray(persisted.inventory)
+        ? persisted.inventory
+            .map(item => {
+              if (!item || typeof item !== 'object') {
+                return null;
+              }
+
+              const catalogItem = getInventoryItemById((item as InventoryItem).id);
+              if (!catalogItem) {
+                return null;
+              }
+
+              return {
+                ...catalogItem,
+                obtainedAt:
+                  typeof (item as InventoryItem).obtainedAt === 'number'
+                    ? (item as InventoryItem).obtainedAt
+                    : Date.now(),
+              } satisfies InventoryItem;
+            })
+            .filter(Boolean) as InventoryItem[]
+        : [];
+
       return {
         ...state,
         ...persisted,
@@ -360,7 +384,7 @@ function reducer(state: GameState, action: Action): GameState {
           totalGames:
             persistedChess?.totalGames ?? initialState.chess.totalGames,
         },
-        inventory: persisted.inventory ?? [],
+        inventory,
       };
     }
     default:
