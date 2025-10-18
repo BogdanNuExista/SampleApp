@@ -62,6 +62,7 @@ const initialState: GameState = {
 type Action =
   | { type: 'SET_PROFILE_NAME'; payload: string }
   | { type: 'COMPLETE_SESSION'; payload: { durationMinutes: number } }
+  | { type: 'DELETE_FLASHCARD'; payload: { id: string } }
   | {
       type: 'ADD_FLASHCARD';
       payload: {
@@ -137,7 +138,7 @@ function reducer(state: GameState, action: Action): GameState {
         coinsEarned,
         streakAchieved: newStreak,
       };
-      const focusSessions = [focusSession, ...state.focusSessions].slice(0, 50);
+      const focusSessions = [focusSession, ...state.focusSessions].slice(0, 5);
 
       return {
         ...state,
@@ -161,6 +162,13 @@ function reducer(state: GameState, action: Action): GameState {
         mood,
       };
       return { ...state, flashcards: [flashcard, ...state.flashcards] };
+    }
+    case 'DELETE_FLASHCARD': {
+      const { id } = action.payload;
+      return {
+        ...state,
+        flashcards: state.flashcards.filter(card => card.id !== id),
+      };
     }
     case 'UPDATE_FLASHCARD': {
       const { id, updates } = action.payload;
@@ -217,7 +225,13 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, activeSkin: skinId };
     }
     case 'HYDRATE':
-      return { ...state, ...action.payload };
+      return {
+        ...state,
+        ...action.payload,
+        focusSessions: action.payload.focusSessions
+          ? action.payload.focusSessions.slice(0, 5)
+          : [],
+      };
     default:
       return state;
   }
@@ -234,6 +248,7 @@ export type GameContextValue = {
     imageBase64?: string;
     mood?: JournalMood;
   }) => void;
+  deleteFlashcard: (id: string) => void;
   updateFlashcard: (
     id: string,
     updates: Partial<Omit<Flashcard, 'id' | 'createdAt'>>,
@@ -303,6 +318,7 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       completeSession: durationMinutes =>
         dispatch({ type: 'COMPLETE_SESSION', payload: { durationMinutes } }),
       addFlashcard: input => dispatch({ type: 'ADD_FLASHCARD', payload: input }),
+      deleteFlashcard: id => dispatch({ type: 'DELETE_FLASHCARD', payload: { id } }),
       updateFlashcard: (id, updates) =>
         dispatch({ type: 'UPDATE_FLASHCARD', payload: { id, updates } }),
       toggleFlashcardFavorite: id =>

@@ -19,15 +19,13 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
   const [selectedMinutes, setSelectedMinutes] = useState<number>(25);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(selectedMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey | null>(null);
+  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey>('idle');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setRemainingSeconds(selectedMinutes * 60);
-    setElapsedSeconds(0);
-    setIsRunning(false);
-    setActiveAnimation(null);
+  setIsRunning(false);
+  setActiveAnimation('idle');
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -49,14 +47,13 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
           clearInterval(intervalRef.current as ReturnType<typeof setInterval>);
           intervalRef.current = null;
           setIsRunning(false);
-          setElapsedSeconds(selectedMinutes * 60);
           onSessionComplete(selectedMinutes);
-          setActiveAnimation(null);
+          setActiveAnimation('idle');
           return 0;
         }
+
         return prev - 1;
       });
-      setElapsedSeconds(prev => prev + 1);
     }, 1000);
 
     return () => {
@@ -86,12 +83,26 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
       }
 
       if (remainingSeconds === selectedMinutes * 60 || remainingSeconds === 0) {
-        setActiveAnimation(current => pickRandomSkeletonAnimation(current ?? undefined));
+        setActiveAnimation(current => {
+          const excludes: SkeletonAnimationKey[] = ['idle'];
+          if (current) {
+            excludes.push(current);
+          }
+          return pickRandomSkeletonAnimation(excludes);
+        });
       }
 
       return true;
     });
   };
+
+  useEffect(() => {
+    if (isRunning && activeAnimation === 'idle') {
+      setActiveAnimation(current =>
+        current === 'idle' ? pickRandomSkeletonAnimation('idle') : current,
+      );
+    }
+  }, [activeAnimation, isRunning]);
 
   const minutes = Math.floor(remainingSeconds / 60)
     .toString()
@@ -152,23 +163,19 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
         </Text>
       </View>
 
-      {activeAnimation ? (
-        <View style={styles.animationStage}>
-          <SkeletonSprite
-            frames={skeletonAnimations[activeAnimation].frames}
-            fps={skeletonAnimations[activeAnimation].fps}
-            paused={!isRunning}
-            size={isDarkMode ? 160 : 150}
-          />
-          <Text style={styles.animationCaption}>
-            {skeletonAnimations[activeAnimation].label}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.animationStagePlaceholder}>
-          <Text style={styles.animationPlaceholderText}>Start a run to summon your retro guardian.</Text>
-        </View>
-      )}
+      <View style={styles.animationStage}>
+        <SkeletonSprite
+          frames={skeletonAnimations[activeAnimation].frames}
+          fps={skeletonAnimations[activeAnimation].fps}
+          paused={!isRunning}
+          size={isDarkMode ? 160 : 150}
+        />
+        <Text style={styles.animationCaption}>
+          {isRunning
+            ? skeletonAnimations[activeAnimation].label
+            : 'Guardian standing by'}
+        </Text>
+      </View>
 
       <View style={styles.controlsRow}>
         <Pressable
@@ -188,8 +195,7 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
             }
             setIsRunning(false);
             setRemainingSeconds(selectedMinutes * 60);
-            setElapsedSeconds(0);
-            setActiveAnimation(null);
+            setActiveAnimation('idle');
           }}
         >
           <Text style={styles.controlButtonText}>Reset</Text>
@@ -238,22 +244,6 @@ const styles = StyleSheet.create({
   animationStage: {
     alignItems: 'center',
     gap: 8,
-  },
-  animationStagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10152d',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    minHeight: 200,
-  },
-  animationPlaceholderText: {
-    color: '#64748b',
-    textAlign: 'center',
-    maxWidth: 220,
   },
   animationCaption: {
     color: palette.silver,

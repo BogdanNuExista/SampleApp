@@ -10,7 +10,7 @@ export type SkeletonSpriteProps = {
 
 export function SkeletonSprite({ frames, fps = 12, paused = false, size = 160 }: SkeletonSpriteProps) {
   const [frameIndex, setFrameIndex] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const clampedFrames = useMemo(() => frames.filter(Boolean), [frames]);
 
   useEffect(() => {
@@ -19,26 +19,39 @@ export function SkeletonSprite({ frames, fps = 12, paused = false, size = 160 }:
 
   useEffect(() => {
     if (paused || clampedFrames.length === 0) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (intervalRef.current !== null) {
+        cancelAnimationFrame(intervalRef.current);
         intervalRef.current = null;
       }
       return;
     }
 
     const frameIntervalMs = Math.max(30, Math.round(1000 / fps));
-    intervalRef.current = setInterval(() => {
-      setFrameIndex(prev => {
-        if (clampedFrames.length === 0) {
-          return 0;
-        }
-        return (prev + 1) % clampedFrames.length;
-      });
-    }, frameIntervalMs);
+    let lastTimestamp: number | null = null;
+    let accumulator = 0;
+
+    const step = (timestamp: number) => {
+      if (lastTimestamp === null) {
+        lastTimestamp = timestamp;
+      }
+
+      const delta = timestamp - lastTimestamp;
+      accumulator += delta;
+
+      if (accumulator >= frameIntervalMs) {
+        accumulator -= frameIntervalMs;
+        setFrameIndex(prev => (prev + 1) % clampedFrames.length);
+      }
+
+      lastTimestamp = timestamp;
+      intervalRef.current = requestAnimationFrame(step);
+    };
+
+    intervalRef.current = requestAnimationFrame(step);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (intervalRef.current !== null) {
+        cancelAnimationFrame(intervalRef.current);
         intervalRef.current = null;
       }
     };
@@ -55,6 +68,7 @@ export function SkeletonSprite({ frames, fps = 12, paused = false, size = 160 }:
           source={clampedFrames[frameIndex % clampedFrames.length]}
           style={{ width: size, height: size }}
           resizeMode="contain"
+          fadeDuration={0}
         />
       </View>
     </View>

@@ -28,6 +28,7 @@ export type FlashcardEditorModalProps = {
   defaultDescription?: string;
   defaultImageBase64?: string;
   defaultMood?: JournalMood;
+  onDelete?: () => void;
 };
 
 const pickerOptions = {
@@ -53,6 +54,7 @@ export function FlashcardEditorModal({
   defaultTitle = '',
   defaultImageBase64,
   defaultMood,
+  onDelete,
 }: FlashcardEditorModalProps) {
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
@@ -235,7 +237,20 @@ export function FlashcardEditorModal({
           </View>
 
           <View style={styles.actionsRow}>
-            <Pressable style={[styles.actionButton, styles.actionButtonGhost]} onPress={onClose}>
+            {onDelete ? (
+              <Pressable
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                onPress={() => {
+                  onDelete();
+                }}
+              >
+                <Text style={styles.actionButtonDangerText}>Delete</Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              style={[styles.actionButton, styles.actionButtonGhost]}
+              onPress={onClose}
+            >
               <Text style={styles.actionButtonGhostText}>Cancel</Text>
             </Pressable>
             <Pressable
@@ -421,23 +436,36 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 12,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 14,
+    minWidth: 120,
+    paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonDanger: {
+    backgroundColor: '#2b0b10',
+    borderWidth: 1,
+    borderColor: '#f43f5e',
+  },
+  actionButtonDangerText: {
+    color: '#f43f5e',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   actionButtonGhost: {
     borderWidth: 1,
-    borderColor: '#38bdf833',
-  },
-  actionButtonPrimary: {
-    backgroundColor: palette.neonGreen,
+    borderColor: '#334155',
   },
   actionButtonGhostText: {
     color: palette.silver,
     fontWeight: '600',
+  },
+  actionButtonPrimary: {
+    backgroundColor: palette.neonGreen,
   },
   actionButtonPrimaryText: {
     color: palette.midnight,

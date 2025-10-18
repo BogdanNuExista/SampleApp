@@ -14,6 +14,7 @@ export function FlashcardsScreen() {
   const {
     state: { flashcards },
     addFlashcard,
+    deleteFlashcard,
     updateFlashcard,
     toggleFlashcardFavorite,
   } = useGame();
@@ -87,6 +88,15 @@ export function FlashcardsScreen() {
         defaultDescription={selectedCard?.description}
         defaultImageBase64={selectedCard?.imageBase64}
         defaultMood={selectedCard?.mood}
+        onDelete={
+          selectedCard
+            ? () => {
+                deleteFlashcard(selectedCard.id);
+                setEditorVisible(false);
+                setSelectedId(null);
+              }
+            : undefined
+        }
       />
     </View>
   );
