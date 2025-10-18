@@ -25,28 +25,27 @@ export function StatBadge({ label, value, icon, numberOfLines = 1 }: StatBadgePr
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     backgroundColor: '#1f2937aa',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    padding: 16,
     borderRadius: 18,
-    gap: 14,
+    gap: 12,
     borderWidth: 1,
     borderColor: '#38bdf833',
-    flexShrink: 1,
-    minWidth: 0,
   },
   iconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
   },
   textContainer: {
-    flex: 1,
-    minWidth: 0,
+    width: '100%',
+    gap: 4,
   },
   label: {
     color: palette.silver,
@@ -56,7 +55,7 @@ const styles = StyleSheet.create({
   },
   value: {
     color: palette.softWhite,
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
   },
 });

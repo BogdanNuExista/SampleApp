@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    alignItems: 'stretch',
   },
   sectionTitle: {
     color: palette.neonYellow,
@@ -264,6 +265,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statEmoji: {
-    fontSize: 20,
+    fontSize: 24,
   },
 });
