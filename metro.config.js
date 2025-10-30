@@ -11,6 +11,7 @@ const defaultConfig = getDefaultConfig(__dirname);
 defaultConfig.resolver.assetExts = [
 	...defaultConfig.resolver.assetExts,
 	'onnx',
+	'mp3',
 ];
 
 const config = {};

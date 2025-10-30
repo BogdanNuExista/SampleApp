@@ -20,6 +20,8 @@ const icons = {
   history: require('../../assets/icon_pack/64/map.png'),
   favorite: require('../../assets/icon_pack/64/heart.png'),
   focus: require('../../assets/icon_pack/64/potionRed.png'),
+  trophy: require('../../assets/icon_pack/128/shield.png'),
+  stats: require('../../assets/icon_pack/64/scroll.png'),
 };
 
 type Navigation = BottomTabNavigationProp<RootTabParamList>;
@@ -122,6 +124,42 @@ export function ProfileScreen() {
           onPress={() => navigation.navigate('Flashcards' as never)}
         >
           <Text style={styles.primaryButtonText}>Review your codex</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Image source={icons.trophy} style={styles.cardIcon} />
+          <View>
+            <Text style={styles.cardTitle}>Achievements</Text>
+            <Text style={styles.cardSubtitle}>
+              Track your progress and unlock badges
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Achievements' as never)}
+        >
+          <Text style={styles.primaryButtonText}>View achievements</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Image source={icons.stats} style={styles.cardIcon} />
+          <View>
+            <Text style={styles.cardTitle}>Statistics Dashboard</Text>
+            <Text style={styles.cardSubtitle}>
+              Dive into your performance metrics
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Statistics' as never)}
+        >
+          <Text style={styles.primaryButtonText}>View stats</Text>
         </Pressable>
       </View>
 

@@ -12,6 +12,7 @@ import {
   getInventoryItemById,
   pickRandomInventoryItem,
 } from '../constants/inventoryCatalog';
+import { AchievementId, ACHIEVEMENTS, UserAchievement } from '../types/achievements';
 
 export type FocusSession = {
   id: string;
@@ -75,6 +76,7 @@ export type GameState = {
   streak: number;
   bestSessionMinutes: number;
   totalFocusMinutes: number;
+  totalCoinsEarned: number;
   lastSessionDateISO?: string;
   focusSessions: FocusSession[];
   flashcards: Flashcard[];
@@ -83,6 +85,9 @@ export type GameState = {
   activeSkin: string;
   chess: ChessProgress;
   inventory: InventoryItem[];
+  achievements: UserAchievement[];
+  musicEnabled: boolean;
+  soundEffectsEnabled: boolean;
 };
 
 const STORAGE_KEY = 'retro-arcade-study-state-v1';
@@ -108,6 +113,7 @@ const initialState: GameState = {
   streak: 0,
   bestSessionMinutes: 0,
   totalFocusMinutes: 0,
+  totalCoinsEarned: 0,
   lastSessionDateISO: undefined,
   focusSessions: [],
   flashcards: [],
@@ -116,6 +122,9 @@ const initialState: GameState = {
   activeSkin: 'neon',
   chess: createInitialChessState(),
   inventory: [],
+  achievements: [],
+  musicEnabled: true,
+  soundEffectsEnabled: true,
 };
 
 type Action =
@@ -158,6 +167,9 @@ type Action =
         rewardItem?: InventoryItem | null;
       };
     }
+  | { type: 'UNLOCK_ACHIEVEMENT'; payload: { achievementId: AchievementId } }
+  | { type: 'TOGGLE_MUSIC'; payload?: { enabled: boolean } }
+  | { type: 'TOGGLE_SOUND_EFFECTS'; payload?: { enabled: boolean } }
   | { type: 'HYDRATE'; payload: GameState };
 
 function generateId() {
@@ -211,6 +223,7 @@ function reducer(state: GameState, action: Action): GameState {
       return {
         ...state,
         coins: state.coins + coinsEarned,
+        totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
         streak: newStreak,
         bestSessionMinutes: Math.max(state.bestSessionMinutes, durationMinutes),
         totalFocusMinutes: state.totalFocusMinutes + durationMinutes,
@@ -266,6 +279,7 @@ function reducer(state: GameState, action: Action): GameState {
         ...state,
         arcadeHighScore: isNewHighScore ? score : state.arcadeHighScore,
         coins: state.coins + bonusCoins,
+        totalCoinsEarned: state.totalCoinsEarned + bonusCoins,
       };
     }
     case 'SPEND_COINS': {
@@ -300,6 +314,7 @@ function reducer(state: GameState, action: Action): GameState {
       return {
         ...state,
         coins: state.coins + coinsEarned,
+        totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
         chess: {
           stats: {
             easy: { ...nextStats.easy },
@@ -387,6 +402,33 @@ function reducer(state: GameState, action: Action): GameState {
         inventory,
       };
     }
+    case 'UNLOCK_ACHIEVEMENT': {
+      const { achievementId } = action.payload;
+      if (state.achievements.some(a => a.id === achievementId)) {
+        return state;
+      }
+      const newAchievement: UserAchievement = {
+        id: achievementId,
+        unlockedAt: Date.now(),
+        progress: ACHIEVEMENTS[achievementId].requirement,
+      };
+      return {
+        ...state,
+        achievements: [...state.achievements, newAchievement],
+      };
+    }
+    case 'TOGGLE_MUSIC': {
+      return {
+        ...state,
+        musicEnabled: action.payload?.enabled ?? !state.musicEnabled,
+      };
+    }
+    case 'TOGGLE_SOUND_EFFECTS': {
+      return {
+        ...state,
+        soundEffectsEnabled: action.payload?.enabled ?? !state.soundEffectsEnabled,
+      };
+    }
     default:
       return state;
   }
@@ -414,6 +456,9 @@ export type GameContextValue = {
   unlockSkin: (skinId: string, price: number) => boolean;
   setActiveSkin: (skinId: string) => void;
   finishChessMatch: (match: ChessMatchRequest) => ChessMatchResolution;
+  checkAndUnlockAchievements: () => AchievementId[];
+  toggleMusic: (enabled?: boolean) => void;
+  toggleSoundEffects: (enabled?: boolean) => void;
 };
 
 const GameContext = createContext<GameContextValue | undefined>(undefined);
@@ -539,6 +584,64 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       };
     };
 
+    const checkAndUnlockAchievements = (): AchievementId[] => {
+      const unlocked: AchievementId[] = [];
+      const now = Date.now();
+      const hour = new Date(now).getHours();
+
+      // Check each achievement
+      Object.values(ACHIEVEMENTS).forEach(achievement => {
+        if (state.achievements.some(a => a.id === achievement.id)) {
+          return; // Already unlocked
+        }
+
+        let shouldUnlock = false;
+
+        switch (achievement.id) {
+          case 'first-session':
+            shouldUnlock = state.focusSessions.length >= 1;
+            break;
+          case 'night-owl':
+            shouldUnlock = state.focusSessions.filter(s => new Date(s.completedAt).getHours() >= 22).length >= 10;
+            break;
+          case 'early-bird':
+            shouldUnlock = state.focusSessions.filter(s => new Date(s.completedAt).getHours() < 8).length >= 10;
+            break;
+          case 'marathon-runner':
+            shouldUnlock = state.bestSessionMinutes >= 90;
+            break;
+          case 'chess-beginner':
+            shouldUnlock = state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins >= 5;
+            break;
+          case 'chess-master':
+            shouldUnlock = state.chess.stats.hard.wins >= 10;
+            break;
+          case 'chess-legend':
+            shouldUnlock = state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins >= 50;
+            break;
+          case 'journaler':
+            shouldUnlock = state.flashcards.length >= 30;
+            break;
+          case 'mood-explorer':
+            shouldUnlock = new Set(state.flashcards.filter(f => f.mood).map(f => f.mood)).size >= 5;
+            break;
+          case 'streak-keeper':
+            shouldUnlock = state.streak >= 7;
+            break;
+          case 'coin-collector':
+            shouldUnlock = state.totalCoinsEarned >= 1000;
+            break;
+        }
+
+        if (shouldUnlock) {
+          dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: { achievementId: achievement.id } });
+          unlocked.push(achievement.id);
+        }
+      });
+
+      return unlocked;
+    };
+
     return {
       state,
       isHydrated,
@@ -558,6 +661,11 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setActiveSkin: skinId =>
         dispatch({ type: 'SET_ACTIVE_SKIN', payload: { skinId } }),
       finishChessMatch,
+      checkAndUnlockAchievements,
+      toggleMusic: (enabled?: boolean) =>
+        dispatch({ type: 'TOGGLE_MUSIC', payload: enabled !== undefined ? { enabled } : undefined }),
+      toggleSoundEffects: (enabled?: boolean) =>
+        dispatch({ type: 'TOGGLE_SOUND_EFFECTS', payload: enabled !== undefined ? { enabled } : undefined }),
     };
   }, [state, isHydrated]);
 

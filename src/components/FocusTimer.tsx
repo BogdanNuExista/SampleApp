@@ -19,13 +19,13 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
   const [selectedMinutes, setSelectedMinutes] = useState<number>(25);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(selectedMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey>('idle');
+  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey>('running');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setRemainingSeconds(selectedMinutes * 60);
   setIsRunning(false);
-  setActiveAnimation('idle');
+  setActiveAnimation('running');
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -48,7 +48,7 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
           intervalRef.current = null;
           setIsRunning(false);
           onSessionComplete(selectedMinutes);
-          setActiveAnimation('idle');
+          setActiveAnimation('slashing'); // Show slashing animation on completion
           return 0;
         }
 
@@ -79,30 +79,16 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
   const handleToggleRunning = () => {
     setIsRunning(prev => {
       if (prev) {
+        // Pausing - show slashing animation
+        setActiveAnimation('slashing');
         return false;
       }
 
-      if (remainingSeconds === selectedMinutes * 60 || remainingSeconds === 0) {
-        setActiveAnimation(current => {
-          const excludes: SkeletonAnimationKey[] = ['idle'];
-          if (current) {
-            excludes.push(current);
-          }
-          return pickRandomSkeletonAnimation(excludes);
-        });
-      }
-
+      // Starting or resuming - show running animation
+      setActiveAnimation('running');
       return true;
     });
   };
-
-  useEffect(() => {
-    if (isRunning && activeAnimation === 'idle') {
-      setActiveAnimation(current =>
-        current === 'idle' ? pickRandomSkeletonAnimation('idle') : current,
-      );
-    }
-  }, [activeAnimation, isRunning]);
 
   const minutes = Math.floor(remainingSeconds / 60)
     .toString()
@@ -195,7 +181,7 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
             }
             setIsRunning(false);
             setRemainingSeconds(selectedMinutes * 60);
-            setActiveAnimation('idle');
+            setActiveAnimation('running');
           }}
         >
           <Text style={styles.controlButtonText}>Reset</Text>

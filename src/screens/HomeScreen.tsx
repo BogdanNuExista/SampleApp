@@ -2,6 +2,7 @@ import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { FocusTimer } from '../components/FocusTimer';
 import { StatBadge } from '../components/StatBadge';
+import { MusicControl } from '../components/MusicControl';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 
@@ -81,6 +82,7 @@ export function HomeScreen() {
       activeSkin,
     },
     completeSession,
+    checkAndUnlockAchievements,
   } = useGame();
 
   const recentSessions = focusSessions.slice(0, 5);
@@ -132,11 +134,19 @@ export function HomeScreen() {
             />
           </View>
 
+          <Text style={styles.sectionTitle}>Lo-fi Background Mix</Text>
+          <MusicControl />
+
           <Text style={styles.sectionTitle}>Arcade Focus Run</Text>
           <FocusTimer
             isDarkMode
             onSessionComplete={minutes => {
               completeSession(minutes);
+              // Automatically check achievements after session
+              setTimeout(() => {
+                const unlocked = checkAndUnlockAchievements();
+                // You could show a notification toast here
+              }, 1000);
             }}
           />
 

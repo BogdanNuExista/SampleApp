@@ -2,11 +2,14 @@ import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ArcadeScreen } from '../screens/ArcadeScreen';
 import { FlashcardsScreen } from '../screens/FlashcardsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { InventoryScreen } from '../screens/InventoryScreen';
+import { AchievementsScreen } from '../screens/AchievementsScreen';
+import { StatisticsScreen } from '../screens/StatisticsScreen';
 import { palette } from '../theme/colors';
 
 export type RootTabParamList = {
@@ -17,7 +20,14 @@ export type RootTabParamList = {
   Profile: undefined;
 };
 
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Achievements: undefined;
+  Statistics: undefined;
+};
+
 const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 type TabIconConfig = {
   icon: string | ImageSourcePropType;
@@ -44,10 +54,9 @@ const navTheme: Theme = {
   },
 };
 
-export function RootNavigator() {
+function TabNavigator() {
   return (
-    <NavigationContainer theme={navTheme}>
-      <Tab.Navigator
+    <Tab.Navigator
         initialRouteName="Home"
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -91,6 +100,35 @@ export function RootNavigator() {
         />
         <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
       </Tab.Navigator>
+  );
+}
+
+export function RootNavigator() {
+  return (
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MainTabs" component={TabNavigator} />
+        <Stack.Screen 
+          name="Achievements" 
+          component={AchievementsScreen} 
+          options={{ 
+            headerShown: true,
+            title: 'Achievements',
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          }} 
+        />
+        <Stack.Screen 
+          name="Statistics" 
+          component={StatisticsScreen} 
+          options={{ 
+            headerShown: true,
+            title: 'Statistics',
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          }} 
+        />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }

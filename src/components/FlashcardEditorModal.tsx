@@ -126,7 +126,7 @@ export function FlashcardEditorModal({
           <ScrollView contentContainerStyle={styles.sheet}>
           <Text style={styles.sheetTitle}>Log a journal memory</Text>
           <Text style={styles.helper}>
-            Capture how you feel, what you learned, and keep the story in your codex.
+            Capture how you feel, what you learned, and keep the story in your codex. AI-powered by ResNet50-int8 for instant image recognition.
           </Text>
 
           <View style={styles.field}>
