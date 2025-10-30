@@ -3,7 +3,9 @@ import { ImageSourcePropType } from 'react-native';
 export type SkeletonAnimationKey =
   | 'idle'
   | 'running'
-  | 'slashing';
+  | 'slashing'
+  | 'hurt'
+  | 'victorious';
 
 export interface SkeletonAnimation {
   label: string;
@@ -175,6 +177,16 @@ export const skeletonAnimations: Record<SkeletonAnimationKey, SkeletonAnimation>
     label: 'Slashing',
     frames: slashingFrames,
     fps: 15,
+  },
+  hurt: {
+    label: 'Hurt',
+    frames: hurtFrames,
+    fps: 10,
+  },
+  victorious: {
+    label: 'Victorious',
+    frames: dyingFrames, // Reuse dying animation as victorious (falling back in celebration)
+    fps: 8,
   },
 };
 
