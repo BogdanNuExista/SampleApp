@@ -1,4 +1,5 @@
-assets
+/assets
+android/app/src/main/assets/models/
 # I have assets/models inside android/app/src/main
 
 # OSX

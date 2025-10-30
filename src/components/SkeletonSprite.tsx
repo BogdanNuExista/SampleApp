@@ -10,15 +10,34 @@ export type SkeletonSpriteProps = {
 
 export function SkeletonSprite({ frames, fps = 12, paused = false, size = 160 }: SkeletonSpriteProps) {
   const [frameIndex, setFrameIndex] = useState(0);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const clampedFrames = useMemo(() => frames.filter(Boolean), [frames]);
 
+  // Preload all images when frames change
   useEffect(() => {
     setFrameIndex(0);
+    setImagesLoaded(false);
+
+    // Preload images by prefetching them
+    const preloadImages = async () => {
+      try {
+        await Promise.all(
+          clampedFrames.map(frame => Image.prefetch(Image.resolveAssetSource(frame).uri))
+        );
+        setImagesLoaded(true);
+      } catch (error) {
+        // If prefetch fails, still allow animation to play
+        setImagesLoaded(true);
+      }
+    };
+
+    preloadImages();
   }, [clampedFrames]);
 
   useEffect(() => {
-    if (paused || clampedFrames.length === 0) {
+    // Don't start animation until images are loaded
+    if (paused || clampedFrames.length === 0 || !imagesLoaded) {
       if (intervalRef.current !== null) {
         cancelAnimationFrame(intervalRef.current);
         intervalRef.current = null;
@@ -55,7 +74,7 @@ export function SkeletonSprite({ frames, fps = 12, paused = false, size = 160 }:
         intervalRef.current = null;
       }
     };
-  }, [clampedFrames, fps, paused]);
+  }, [clampedFrames, fps, paused, imagesLoaded]);
 
   if (clampedFrames.length === 0) {
     return null;

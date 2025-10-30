@@ -121,8 +121,9 @@ export function FlashcardEditorModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <ScrollView contentContainerStyle={styles.sheet}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable onPress={(e) => e.stopPropagation()}>
+          <ScrollView contentContainerStyle={styles.sheet}>
           <Text style={styles.sheetTitle}>Log a journal memory</Text>
           <Text style={styles.helper}>
             Capture how you feel, what you learned, and keep the story in your codex.
@@ -272,7 +273,8 @@ export function FlashcardEditorModal({
             </Pressable>
           </View>
         </ScrollView>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

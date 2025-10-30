@@ -425,8 +425,8 @@ export function NeonChessArena() {
       </View>
 
       <Modal transparent animationType="fade" visible={Boolean(result)} onRequestClose={handleCloseResult}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <Pressable style={styles.modalBackdrop} onPress={handleCloseResult}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>
               {result?.outcome === 'win'
                 ? 'Victory!'
@@ -465,8 +465,8 @@ export function NeonChessArena() {
             <Pressable style={styles.modalButton} onPress={handleCloseResult}>
               <Text style={styles.modalButtonText}>Start a new game</Text>
             </Pressable>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
