@@ -500,6 +500,81 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     );
   }, [state, isHydrated]);
 
+  // Check achievements when relevant state changes (after hydration)
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    // Auto-check achievements whenever state changes that might unlock them
+    const checkAchievements = () => {
+      const now = Date.now();
+
+      Object.values(ACHIEVEMENTS).forEach(achievement => {
+        if (state.achievements.some(a => a.id === achievement.id)) {
+          return; // Already unlocked
+        }
+
+        let shouldUnlock = false;
+
+        switch (achievement.id) {
+          case 'first-session':
+            shouldUnlock = state.focusSessions.length >= 1;
+            break;
+          case 'night-owl':
+            shouldUnlock = state.focusSessions.filter(s => new Date(s.completedAt).getHours() >= 22).length >= 10;
+            break;
+          case 'early-bird':
+            shouldUnlock = state.focusSessions.filter(s => new Date(s.completedAt).getHours() < 8).length >= 10;
+            break;
+          case 'marathon-runner':
+            shouldUnlock = state.bestSessionMinutes >= 90;
+            break;
+          case 'chess-beginner':
+            shouldUnlock = (state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins) >= 5;
+            break;
+          case 'chess-master':
+            shouldUnlock = state.chess.stats.hard.wins >= 10;
+            break;
+          case 'chess-legend':
+            shouldUnlock = (state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins) >= 50;
+            break;
+          case 'journaler':
+            shouldUnlock = state.flashcards.length >= 30;
+            break;
+          case 'mood-explorer':
+            shouldUnlock = new Set(state.flashcards.filter(f => f.mood).map(f => f.mood)).size >= 5;
+            break;
+          case 'streak-keeper':
+            shouldUnlock = state.streak >= 7;
+            break;
+          case 'coin-collector':
+            shouldUnlock = state.totalCoinsEarned >= 1000;
+            break;
+        }
+
+        if (shouldUnlock) {
+          dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: { achievementId: achievement.id } });
+        }
+      });
+    };
+
+    // Debounce the check to avoid multiple rapid checks
+    const timeoutId = setTimeout(checkAchievements, 500);
+    return () => clearTimeout(timeoutId);
+  }, [
+    isHydrated,
+    state.focusSessions.length,
+    state.bestSessionMinutes,
+    state.chess.stats.easy.wins,
+    state.chess.stats.normal.wins,
+    state.chess.stats.hard.wins,
+    state.flashcards.length,
+    state.streak,
+    state.totalCoinsEarned,
+    state.achievements.length,
+  ]);
+
   const value = useMemo<GameContextValue>(() => {
     const unlockSkin = (skinId: string, price: number) => {
       if (state.ownedSkins.includes(skinId)) {
@@ -584,62 +659,10 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       };
     };
 
+    // Returns list of currently unlocked achievement IDs
+    // Note: Auto-checking happens via useEffect, this is for manual triggers
     const checkAndUnlockAchievements = (): AchievementId[] => {
-      const unlocked: AchievementId[] = [];
-      const now = Date.now();
-      const hour = new Date(now).getHours();
-
-      // Check each achievement
-      Object.values(ACHIEVEMENTS).forEach(achievement => {
-        if (state.achievements.some(a => a.id === achievement.id)) {
-          return; // Already unlocked
-        }
-
-        let shouldUnlock = false;
-
-        switch (achievement.id) {
-          case 'first-session':
-            shouldUnlock = state.focusSessions.length >= 1;
-            break;
-          case 'night-owl':
-            shouldUnlock = state.focusSessions.filter(s => new Date(s.completedAt).getHours() >= 22).length >= 10;
-            break;
-          case 'early-bird':
-            shouldUnlock = state.focusSessions.filter(s => new Date(s.completedAt).getHours() < 8).length >= 10;
-            break;
-          case 'marathon-runner':
-            shouldUnlock = state.bestSessionMinutes >= 90;
-            break;
-          case 'chess-beginner':
-            shouldUnlock = state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins >= 5;
-            break;
-          case 'chess-master':
-            shouldUnlock = state.chess.stats.hard.wins >= 10;
-            break;
-          case 'chess-legend':
-            shouldUnlock = state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins >= 50;
-            break;
-          case 'journaler':
-            shouldUnlock = state.flashcards.length >= 30;
-            break;
-          case 'mood-explorer':
-            shouldUnlock = new Set(state.flashcards.filter(f => f.mood).map(f => f.mood)).size >= 5;
-            break;
-          case 'streak-keeper':
-            shouldUnlock = state.streak >= 7;
-            break;
-          case 'coin-collector':
-            shouldUnlock = state.totalCoinsEarned >= 1000;
-            break;
-        }
-
-        if (shouldUnlock) {
-          dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: { achievementId: achievement.id } });
-          unlocked.push(achievement.id);
-        }
-      });
-
-      return unlocked;
+      return state.achievements.map(a => a.id);
     };
 
     return {
