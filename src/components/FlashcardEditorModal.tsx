@@ -254,23 +254,6 @@ export function FlashcardEditorModal({
             >
               <Text style={styles.actionButtonGhostText}>Cancel</Text>
             </Pressable>
-            <Pressable
-              style={[styles.actionButton, styles.actionButtonPrimary]}
-              onPress={() => {
-                if (!title.trim()) {
-                  return;
-                }
-                onSubmit({
-                  title: title.trim(),
-                  description: description.trim(),
-                  imageBase64,
-                  mood,
-                });
-                onClose();
-              }}
-            >
-              <Text style={styles.actionButtonPrimaryText}>Save</Text>
-            </Pressable>
           </View>
         </ScrollView>
         </Pressable>
@@ -437,14 +420,14 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   actionButton: {
-    flex: 1,
-    minWidth: 120,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -452,25 +435,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#2b0b10',
     borderWidth: 1,
     borderColor: '#f43f5e',
+    paddingHorizontal: 16,
   },
   actionButtonDangerText: {
     color: '#f43f5e',
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '600',
+    fontSize: 14,
   },
   actionButtonGhost: {
     borderWidth: 1,
     borderColor: '#334155',
+    paddingHorizontal: 20,
   },
   actionButtonGhostText: {
     color: palette.silver,
     fontWeight: '600',
+    fontSize: 14,
   },
   actionButtonPrimary: {
     backgroundColor: palette.neonGreen,
+    paddingHorizontal: 24,
   },
   actionButtonPrimaryText: {
     color: palette.midnight,
     fontWeight: '700',
+    fontSize: 14,
   },
 });
