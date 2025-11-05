@@ -81,7 +81,7 @@ export function ProfileScreen() {
           <View>
             <Text style={styles.cardTitle}>Top Focus Runs</Text>
             <Text style={styles.cardSubtitle}>
-              Your strongest streaks keep your cabinet glowing.
+              Your streaks keep your cabinet glowing.
             </Text>
           </View>
         </View>
