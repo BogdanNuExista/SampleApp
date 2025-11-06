@@ -1,29 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 import { NeonChessArena } from '../components/NeonChessArena';
-
-const skinsCatalog = [
-  {
-    id: 'neon',
-    title: 'Neon Pulse',
-    price: 0,
-    description: 'Default synthwave glow.',
-  },
-  {
-    id: 'royal',
-    title: 'Royal Nova',
-    price: 120,
-    description: 'Deep blues with golden trims.',
-  },
-  {
-    id: 'ember',
-    title: 'Ember Blade',
-    price: 180,
-    description: 'Fiery gradients for intense streaks.',
-  },
-];
 
 type Lane = 0 | 1 | 2;
 
@@ -63,20 +42,10 @@ const arcadeGames: Array<{
 
 export function ArcadeScreen() {
   const {
-    state: { coins, arcadeHighScore, activeSkin, ownedSkins },
+    state: { coins, arcadeHighScore },
     recordArcadeScore,
-    unlockSkin,
   } = useGame();
   const [activeGame, setActiveGame] = useState<ArcadeGameId>('lanes');
-
-  const skinStatus = useMemo(() => {
-    return skinsCatalog.map(skin => ({
-      ...skin,
-      owned: ownedSkins.includes(skin.id),
-      active: activeSkin === skin.id,
-      affordable: coins >= skin.price,
-    }));
-  }, [coins, ownedSkins, activeSkin]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -120,38 +89,6 @@ export function ArcadeScreen() {
         <ReactionPulseArena recordScore={recordArcadeScore} />
       ) : null}
       {activeGame === 'chess' ? <NeonChessArena /> : null}
-
-      <Text style={styles.sectionTitle}>Arcade Cabinet Store</Text>
-      <Text style={styles.sectionSubtitle}>
-        Spend coins to unlock cabinet skins and flex your arcade style.
-      </Text>
-
-      <View style={styles.storeList}>
-        {skinStatus.map(skin => (
-          <View key={skin.id} style={styles.skinCard}>
-            <Text style={styles.skinTitle}>{skin.title}</Text>
-            <Text style={styles.skinDescription}>{skin.description}</Text>
-            <View style={styles.skinFooter}>
-              <Text style={styles.skinPrice}>
-                {skin.price === 0 ? 'Owned' : `${skin.price} coins`}
-              </Text>
-              <Pressable
-                style={[
-                  styles.skinButton,
-                  skin.active && styles.skinButtonActive,
-                  !skin.affordable && !skin.owned && styles.skinButtonDisabled,
-                ]}
-                onPress={() => unlockSkin(skin.id, skin.price)}
-                disabled={!skin.affordable && !skin.owned}
-              >
-                <Text style={styles.skinButtonText}>
-                  {skin.active ? 'Equipped' : skin.owned ? 'Equip skin' : 'Unlock'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-      </View>
     </ScrollView>
   );
 }
@@ -734,59 +671,6 @@ const styles = StyleSheet.create({
   reactionStatValue: {
     color: palette.softWhite,
     fontSize: 16,
-    fontWeight: '700',
-  },
-  sectionTitle: {
-    color: palette.neonYellow,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  sectionSubtitle: {
-    color: '#cbd5f5',
-  },
-  storeList: {
-    gap: 16,
-  },
-  skinCard: {
-    backgroundColor: '#1c1438',
-    borderRadius: 20,
-    padding: 20,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#6366f144',
-  },
-  skinTitle: {
-    color: palette.softWhite,
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  skinDescription: {
-    color: '#cbd5f5',
-    fontSize: 13,
-  },
-  skinFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  skinPrice: {
-    color: palette.neonBlue,
-    fontWeight: '600',
-  },
-  skinButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-    backgroundColor: palette.neonBlue,
-  },
-  skinButtonDisabled: {
-    backgroundColor: '#1f2937',
-  },
-  skinButtonActive: {
-    backgroundColor: palette.neonGreen,
-  },
-  skinButtonText: {
-    color: palette.midnight,
     fontWeight: '700',
   },
 });

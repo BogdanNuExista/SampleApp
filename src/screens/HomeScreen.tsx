@@ -10,13 +10,6 @@ const icons = {
   coin: '🪙',
   streak: '🔥',
   time: '⏱️',
-  cabinet: '🎮',
-};
-
-const skinVariants: Record<string, { backgroundColor: string; borderColor: string }> = {
-  neon: { backgroundColor: '#1f2937', borderColor: '#38bdf822' },
-  royal: { backgroundColor: '#312e81', borderColor: '#6366f122' },
-  ember: { backgroundColor: '#4c1d95', borderColor: '#fb718522' },
 };
 
 const compactNumberFormatter =
@@ -79,7 +72,6 @@ export function HomeScreen() {
       streak,
       bestSessionMinutes,
       focusSessions,
-      activeSkin,
     },
     completeSession,
     checkAndUnlockAchievements,
@@ -99,20 +91,6 @@ export function HomeScreen() {
             <View style={styles.headerText}>
               <Text style={styles.greeting}>Welcome back,</Text>
               <Text style={styles.playerName}>{profileName}</Text>
-            </View>
-            <View
-              style={[
-                styles.skinBadge,
-                {
-                  backgroundColor:
-                    skinVariants[activeSkin]?.backgroundColor ?? '#1f2937',
-                  borderColor:
-                    skinVariants[activeSkin]?.borderColor ?? '#38bdf822',
-                },
-              ]}
-            >
-              <Text style={styles.skinEmoji}>{icons.cabinet}</Text>
-              <Text style={styles.skinLabel}>{activeSkin.toUpperCase()}</Text>
             </View>
           </View>
 
@@ -214,23 +192,6 @@ const styles = StyleSheet.create({
     color: palette.softWhite,
     fontSize: 26,
     fontWeight: '700',
-  },
-  skinBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  skinEmoji: {
-    fontSize: 20,
-  },
-  skinLabel: {
-    color: palette.neonBlue,
-    fontWeight: '700',
-    letterSpacing: 1,
   },
   statsGrid: {
     flexDirection: 'row',
