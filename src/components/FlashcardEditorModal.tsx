@@ -121,9 +121,14 @@ export function FlashcardEditorModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable onPress={(e) => e.stopPropagation()}>
-          <ScrollView contentContainerStyle={styles.sheet}>
+      <View style={styles.backdrop}>
+        <Pressable style={styles.backdropTouchable} onPress={onClose} />
+        <View style={styles.sheetContainer}>
+          <ScrollView 
+            contentContainerStyle={styles.sheet}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+          >
           <Text style={styles.sheetTitle}>Log a journal memory</Text>
           <Text style={styles.helper}>
             Capture how you feel, what you learned, and keep the story in your codex. AI-powered by ResNet50-int8 for instant image recognition.
@@ -254,10 +259,27 @@ export function FlashcardEditorModal({
             >
               <Text style={styles.actionButtonGhostText}>Cancel</Text>
             </Pressable>
+            <Pressable
+              style={[styles.actionButton, styles.actionButtonPrimary]}
+              onPress={() => {
+                if (!title.trim()) {
+                  return;
+                }
+                onSubmit({
+                  title: title.trim(),
+                  description: description.trim(),
+                  imageBase64,
+                  mood,
+                });
+                onClose();
+              }}
+            >
+              <Text style={styles.actionButtonPrimaryText}>Save</Text>
+            </Pressable>
           </View>
         </ScrollView>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -268,10 +290,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000aa',
     justifyContent: 'flex-end',
   },
-  sheet: {
+  backdropTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  sheetContainer: {
+    maxHeight: '90%',
     backgroundColor: palette.midnight,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+  },
+  sheet: {
     padding: 24,
     gap: 16,
   },

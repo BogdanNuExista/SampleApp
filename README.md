@@ -98,4 +98,4 @@ To learn more about React Native, take a look at the following resources:
 
 To clear emulator cache : 
 - adb shell pm trim-caches 2G
-- adb uninstall com.sampleapp; 
+- adb uninstall com.sampleapp

@@ -28,30 +28,45 @@ export function FlashcardsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Neon Journal</Text>
-          <Text style={styles.subtitle}>
-            Chronicle your wins, realizations, and moods as you power through the arcade.
-          </Text>
-        </View>
-        <Pressable style={styles.addButton} onPress={() => setEditorVisible(true)}>
-          <Text style={styles.addButtonText}>+ Entry</Text>
-        </Pressable>
-      </View>
-
+    <>
       {flashcards.length === 0 ? (
-        <EmptyState
-          icon={icons.crystal}
-          title="Begin your codex journal"
-          subtitle="Log reflections, attach photos, and tag the mood of each moment."
-        />
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <View style={styles.headerText}>
+              <Text style={styles.title}>Neon Journal</Text>
+              <Text style={styles.subtitle}>
+                Chronicle your wins, realizations, and moods as you power through the arcade.
+              </Text>
+            </View>
+            <Pressable style={styles.addButton} onPress={() => setEditorVisible(true)}>
+              <Text style={styles.addButtonText}>+ Entry</Text>
+            </Pressable>
+          </View>
+          <EmptyState
+            icon={icons.crystal}
+            title="Begin your codex journal"
+            subtitle="Log reflections, attach photos, and tag the mood of each moment."
+          />
+        </View>
       ) : (
         <FlatList
+          style={styles.container}
           data={flashcards}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <View style={styles.headerText}>
+                <Text style={styles.title}>Neon Journal</Text>
+                <Text style={styles.subtitle}>
+                  Chronicle your wins, realizations, and moods as you power through the arcade.
+                </Text>
+              </View>
+              <Pressable style={styles.addButton} onPress={() => setEditorVisible(true)}>
+                <Text style={styles.addButtonText}>+ Entry</Text>
+              </Pressable>
+            </View>
+          }
           renderItem={({ item }) => (
             <FlashcardItem
               card={item}
@@ -98,7 +113,7 @@ export function FlashcardsScreen() {
             : undefined
         }
       />
-    </View>
+    </>
   );
 }
 
@@ -140,5 +155,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+    paddingTop: 12,
   },
 });
