@@ -1,4 +1,4 @@
-package com.sampleapp
+package com.focusquest
 
 import android.app.Application
 import com.facebook.react.PackageList

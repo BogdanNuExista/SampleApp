@@ -8,6 +8,7 @@ adb shell pm trim-caches 2G
 # Uninstall old app version
 Write-Host "🗑️ Uninstalling old app..." -ForegroundColor Yellow
 adb uninstall com.sampleapp 2>$null
+adb uninstall com.focusquest 2>$null
 
 # Clean gradle build
 Write-Host "🧼 Cleaning Gradle build..." -ForegroundColor Yellow
