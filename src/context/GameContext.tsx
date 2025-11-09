@@ -53,6 +53,21 @@ type ChessProgress = {
   totalGames: number;
 };
 
+// Maia Chess types
+export type MaiaChessDifficulty = 'apprentice' | 'adept' | 'master';
+
+export type MaiaChessUnlockState = {
+  apprentice: boolean;
+  adept: boolean;
+  master: boolean;
+};
+
+type MaiaChessProgress = {
+  stats: Record<MaiaChessDifficulty, ChessRecord>;
+  unlocked: MaiaChessUnlockState;
+  totalGames: number;
+};
+
 export type InventoryItem = InventoryCatalogItem & {
   obtainedAt: number;
 };
@@ -70,6 +85,18 @@ export type ChessMatchResolution = {
   newlyUnlocked: ChessUnlockState;
 };
 
+// Maia Chess match types
+export type MaiaChessMatchRequest = {
+  difficulty: MaiaChessDifficulty;
+  outcome: 'win' | 'loss' | 'draw';
+};
+
+export type MaiaChessMatchResolution = {
+  coinsEarned: number;
+  reward: InventoryCatalogItem | null;
+  isRewardNew: boolean;
+};
+
 export type GameState = {
   profileName: string;
   coins: number;
@@ -84,6 +111,7 @@ export type GameState = {
   ownedSkins: string[];
   activeSkin: string;
   chess: ChessProgress;
+  maiaChess: MaiaChessProgress;
   inventory: InventoryItem[];
   achievements: UserAchievement[];
   musicEnabled: boolean;
@@ -101,10 +129,26 @@ const createInitialChessState = (): ChessProgress => ({
   totalGames: 0,
 });
 
+const createInitialMaiaChessState = (): MaiaChessProgress => ({
+  stats: {
+    apprentice: { wins: 0, losses: 0 },
+    adept: { wins: 0, losses: 0 },
+    master: { wins: 0, losses: 0 },
+  },
+  unlocked: { apprentice: false, adept: false, master: false },
+  totalGames: 0,
+});
+
 const CHESS_REWARD_COINS: Record<ChessDifficulty, number> = {
   easy: 12,
   normal: 24,
   hard: 40,
+};
+
+const MAIA_CHESS_REWARD_COINS: Record<MaiaChessDifficulty, number> = {
+  apprentice: 15,
+  adept: 30,
+  master: 50,
 };
 
 const initialState: GameState = {
@@ -121,6 +165,7 @@ const initialState: GameState = {
   ownedSkins: ['neon'],
   activeSkin: 'neon',
   chess: createInitialChessState(),
+  maiaChess: createInitialMaiaChessState(),
   inventory: [],
   achievements: [],
   musicEnabled: true,
@@ -166,6 +211,18 @@ type Action =
         nextUnlocked: ChessUnlockState;
         rewardItem?: InventoryItem | null;
       };
+    }
+  | {
+      type: 'COMPLETE_MAIA_CHESS_GAME';
+      payload: {
+        coinsEarned: number;
+        nextStats: Record<MaiaChessDifficulty, ChessRecord>;
+        rewardItem?: InventoryItem | null;
+      };
+    }
+  | {
+      type: 'UNLOCK_MAIA_DIFFICULTY';
+      payload: { difficulty: MaiaChessDifficulty };
     }
   | { type: 'UNLOCK_ACHIEVEMENT'; payload: { achievementId: AchievementId } }
   | { type: 'TOGGLE_MUSIC'; payload?: { enabled: boolean } }
@@ -327,6 +384,40 @@ function reducer(state: GameState, action: Action): GameState {
         inventory,
       };
     }
+    case 'COMPLETE_MAIA_CHESS_GAME': {
+      const { coinsEarned, nextStats, rewardItem } = action.payload;
+      const inventory = rewardItem
+        ? [...state.inventory, rewardItem]
+        : state.inventory;
+      return {
+        ...state,
+        coins: state.coins + coinsEarned,
+        totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        maiaChess: {
+          stats: {
+            apprentice: { ...nextStats.apprentice },
+            adept: { ...nextStats.adept },
+            master: { ...nextStats.master },
+          },
+          unlocked: { ...state.maiaChess.unlocked },
+          totalGames: state.maiaChess.totalGames + 1,
+        },
+        inventory,
+      };
+    }
+    case 'UNLOCK_MAIA_DIFFICULTY': {
+      const { difficulty } = action.payload;
+      return {
+        ...state,
+        maiaChess: {
+          ...state.maiaChess,
+          unlocked: {
+            ...state.maiaChess.unlocked,
+            [difficulty]: true,
+          },
+        },
+      };
+    }
     case 'HYDRATE': {
       const persisted = action.payload;
       const focusSessions = persisted.focusSessions
@@ -366,6 +457,40 @@ function reducer(state: GameState, action: Action): GameState {
           Boolean(persistedChess?.unlocked?.hard) || stats.normal.wins >= 10,
       };
 
+      // Maia Chess hydration
+      const persistedMaiaChess = persisted.maiaChess;
+      const maiaStats: Record<MaiaChessDifficulty, ChessRecord> = {
+        apprentice: {
+          wins:
+            persistedMaiaChess?.stats?.apprentice?.wins ??
+            initialState.maiaChess.stats.apprentice.wins,
+          losses:
+            persistedMaiaChess?.stats?.apprentice?.losses ??
+            initialState.maiaChess.stats.apprentice.losses,
+        },
+        adept: {
+          wins:
+            persistedMaiaChess?.stats?.adept?.wins ??
+            initialState.maiaChess.stats.adept.wins,
+          losses:
+            persistedMaiaChess?.stats?.adept?.losses ??
+            initialState.maiaChess.stats.adept.losses,
+        },
+        master: {
+          wins:
+            persistedMaiaChess?.stats?.master?.wins ??
+            initialState.maiaChess.stats.master.wins,
+          losses:
+            persistedMaiaChess?.stats?.master?.losses ??
+            initialState.maiaChess.stats.master.losses,
+        },
+      };
+      const maiaUnlocked: MaiaChessUnlockState = {
+        apprentice: Boolean(persistedMaiaChess?.unlocked?.apprentice),
+        adept: Boolean(persistedMaiaChess?.unlocked?.adept),
+        master: Boolean(persistedMaiaChess?.unlocked?.master),
+      };
+
       const inventory: InventoryItem[] = Array.isArray(persisted.inventory)
         ? persisted.inventory
             .map(item => {
@@ -398,6 +523,12 @@ function reducer(state: GameState, action: Action): GameState {
           unlocked,
           totalGames:
             persistedChess?.totalGames ?? initialState.chess.totalGames,
+        },
+        maiaChess: {
+          stats: maiaStats,
+          unlocked: maiaUnlocked,
+          totalGames:
+            persistedMaiaChess?.totalGames ?? initialState.maiaChess.totalGames,
         },
         inventory,
       };
@@ -456,6 +587,8 @@ export type GameContextValue = {
   unlockSkin: (skinId: string, price: number) => boolean;
   setActiveSkin: (skinId: string) => void;
   finishChessMatch: (match: ChessMatchRequest) => ChessMatchResolution;
+  finishMaiaChessMatch: (match: MaiaChessMatchRequest) => MaiaChessMatchResolution;
+  unlockMaiaDifficulty: (difficulty: MaiaChessDifficulty, cost: number) => boolean;
   checkAndUnlockAchievements: () => AchievementId[];
   toggleMusic: (enabled?: boolean) => void;
   toggleSoundEffects: (enabled?: boolean) => void;
@@ -659,6 +792,76 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       };
     };
 
+    const finishMaiaChessMatch = ({
+      difficulty,
+      outcome,
+    }: MaiaChessMatchRequest): MaiaChessMatchResolution => {
+      const normalizedOutcome: ChessOutcome = outcome === 'win' ? 'win' : 'loss';
+      const coinsEarned =
+        normalizedOutcome === 'win' ? MAIA_CHESS_REWARD_COINS[difficulty] : 0;
+
+      const nextStats: Record<MaiaChessDifficulty, ChessRecord> = {
+        apprentice: { ...state.maiaChess.stats.apprentice },
+        adept: { ...state.maiaChess.stats.adept },
+        master: { ...state.maiaChess.stats.master },
+      };
+
+      if (normalizedOutcome === 'win') {
+        nextStats[difficulty] = {
+          ...nextStats[difficulty],
+          wins: nextStats[difficulty].wins + 1,
+        };
+      } else {
+        nextStats[difficulty] = {
+          ...nextStats[difficulty],
+          losses: nextStats[difficulty].losses + 1,
+        };
+      }
+
+      const rewardEligible =
+        normalizedOutcome === 'win' && (difficulty === 'adept' || difficulty === 'master');
+      const catalogReward: InventoryCatalogItem | null = rewardEligible
+        ? pickRandomInventoryItem()
+        : null;
+
+      const alreadyOwned = catalogReward
+        ? state.inventory.some(item => item.id === catalogReward.id)
+        : false;
+      const rewardItem: InventoryItem | null =
+        catalogReward && !alreadyOwned
+          ? { ...catalogReward, obtainedAt: Date.now() }
+          : null;
+
+      dispatch({
+        type: 'COMPLETE_MAIA_CHESS_GAME',
+        payload: {
+          coinsEarned,
+          nextStats,
+          rewardItem,
+        },
+      });
+
+      return {
+        coinsEarned,
+        reward: catalogReward,
+        isRewardNew: Boolean(rewardItem),
+      };
+    };
+
+    const unlockMaiaDifficulty = (difficulty: MaiaChessDifficulty, cost: number): boolean => {
+      if (state.maiaChess.unlocked[difficulty]) {
+        return true; // Already unlocked
+      }
+
+      if (state.coins < cost) {
+        return false; // Not enough coins
+      }
+
+      dispatch({ type: 'SPEND_COINS', payload: { amount: cost } });
+      dispatch({ type: 'UNLOCK_MAIA_DIFFICULTY', payload: { difficulty } });
+      return true;
+    };
+
     // Returns list of currently unlocked achievement IDs
     // Note: Auto-checking happens via useEffect, this is for manual triggers
     const checkAndUnlockAchievements = (): AchievementId[] => {
@@ -684,6 +887,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setActiveSkin: skinId =>
         dispatch({ type: 'SET_ACTIVE_SKIN', payload: { skinId } }),
       finishChessMatch,
+      finishMaiaChessMatch,
+      unlockMaiaDifficulty,
       checkAndUnlockAchievements,
       toggleMusic: (enabled?: boolean) =>
         dispatch({ type: 'TOGGLE_MUSIC', payload: enabled !== undefined ? { enabled } : undefined }),

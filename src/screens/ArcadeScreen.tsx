@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 import { NeonChessArena } from '../components/NeonChessArena';
+import { MaiaChessArena } from '../components/MaiaChessArena';
 
 type Lane = 0 | 1 | 2;
 
@@ -12,7 +13,7 @@ const laneLabels: Record<Lane, string> = {
   2: 'Right',
 };
 
-type ArcadeGameId = 'lanes' | 'reaction' | 'chess';
+type ArcadeGameId = 'lanes' | 'reaction' | 'chess' | 'maiaChess';
 
 const arcadeGames: Array<{
   id: ArcadeGameId;
@@ -37,6 +38,12 @@ const arcadeGames: Array<{
     title: 'Cosmic Chess Gauntlet',
     subtitle: 'Unlock new difficulties, earn loot, and outmaneuver the synth AI.',
     icon: '♞',
+  },
+  {
+    id: 'maiaChess',
+    title: 'Maia AI Chess Challenge',
+    subtitle: 'Face human-like AI opponents trained on real player data at different Elo levels.',
+    icon: '🧠',
   },
 ];
 
@@ -89,6 +96,7 @@ export function ArcadeScreen() {
         <ReactionPulseArena recordScore={recordArcadeScore} />
       ) : null}
       {activeGame === 'chess' ? <NeonChessArena /> : null}
+      {activeGame === 'maiaChess' ? <MaiaChessArena /> : null}
     </ScrollView>
   );
 }
