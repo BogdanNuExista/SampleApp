@@ -94,6 +94,8 @@ export function MaiaChessArena() {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockTarget, setUnlockTarget] = useState<MaiaChessDifficulty | null>(null);
 
+  console.log('MaiaChessArena render - result state:', result);
+
   const { width: windowWidth } = useWindowDimensions();
   const horizontalPadding = 40;
   const rankLabelWidth = 30;
@@ -273,12 +275,15 @@ export function MaiaChessArena() {
         : 'Balanced outcome. Call it a draw.',
     );
     const resolution: MaiaChessMatchResolution = finishMaiaChessMatch({ difficulty, outcome });
-    setResult({
+    console.log('Maia chess game finished!', { outcome, resolution });
+    const resultData = {
       outcome,
       coinsEarned: resolution.coinsEarned,
       reward: resolution.reward ? { item: resolution.reward, isNew: resolution.isRewardNew } : null,
       difficulty,
-    });
+    };
+    console.log('Setting Maia result state:', resultData);
+    setResult(resultData);
   };
 
   const handleCloseResult = () => {

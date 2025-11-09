@@ -82,6 +82,8 @@ export function NeonChessArena() {
   const [statusLabel, setStatusLabel] = useState('You are playing white. Make the first move.');
   const [result, setResult] = useState<ResultModalState | null>(null);
 
+  console.log('NeonChessArena render - result state:', result);
+
   const { width: windowWidth } = useWindowDimensions();
   const horizontalPadding = 40;
   const rankLabelWidth = 30;
@@ -237,7 +239,8 @@ export function NeonChessArena() {
         : 'Balanced outcome. Call it a draw.',
     );
     const resolution: ChessMatchResolution = finishChessMatch({ difficulty, outcome });
-    setResult({
+    console.log('Chess game finished!', { outcome, resolution });
+    const resultData = {
       outcome,
       coinsEarned: resolution.coinsEarned,
       reward: resolution.reward
@@ -245,7 +248,9 @@ export function NeonChessArena() {
         : null,
       newlyUnlocked: resolution.newlyUnlocked,
       difficulty,
-    });
+    };
+    console.log('Setting result state:', resultData);
+    setResult(resultData);
   };
 
   const handleCloseResult = () => {

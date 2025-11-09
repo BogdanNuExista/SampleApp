@@ -32,9 +32,7 @@ export const SudokuArena: React.FC = () => {
   const [mistakes, setMistakes] = useState(0);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [difficultyToUnlock, setDifficultyToUnlock] = useState<SudokuDifficulty | null>(null);
-
-  console.log('SudokuArena render - selectedDifficulty:', selectedDifficulty, 'coins:', state.coins);
-  console.log('Sudoku progress:', state.sudoku);
+  const [highlightedNumber, setHighlightedNumber] = useState<number | null>(null);
 
   const difficulties: Array<{
     id: SudokuDifficulty;
@@ -142,9 +140,16 @@ export const SudokuArena: React.FC = () => {
   };
 
   const handleCellPress = (row: number, col: number) => {
-    // Can only select empty cells
+    // Can only select empty cells, but can click any cell to highlight that number
     if (initialBoard[row][col] === null) {
       setSelectedCell({ row, col });
+      const cellValue = board[row][col];
+      setHighlightedNumber(cellValue);
+    } else {
+      // If clicking an initial cell, just highlight that number
+      const cellValue = board[row][col];
+      setHighlightedNumber(cellValue);
+      setSelectedCell(null);
     }
   };
 
@@ -209,36 +214,21 @@ export const SudokuArena: React.FC = () => {
   };
 
   const handleUnlock = (difficulty: SudokuDifficulty) => {
-    console.log('handleUnlock called for:', difficulty);
     const difficultyInfo = difficulties.find(d => d.id === difficulty);
-    if (!difficultyInfo) {
-      console.log('difficultyInfo not found!');
-      return;
-    }
+    if (!difficultyInfo) return;
 
-    console.log('Setting modal visible, current coins:', state.coins, 'required:', difficultyInfo.cost);
     setDifficultyToUnlock(difficulty);
     setShowUnlockModal(true);
   };
 
   const confirmUnlock = () => {
-    console.log('confirmUnlock called');
-    if (!difficultyToUnlock) {
-      console.log('No difficulty to unlock!');
-      return;
-    }
+    if (!difficultyToUnlock) return;
 
     const difficultyInfo = difficulties.find(d => d.id === difficultyToUnlock);
-    if (!difficultyInfo) {
-      console.log('difficultyInfo not found in confirm!');
-      return;
-    }
+    if (!difficultyInfo) return;
 
-    console.log('Checking coins:', state.coins, 'vs required:', difficultyInfo.cost);
     if (state.coins >= difficultyInfo.cost) {
-      console.log('Attempting to unlock...');
       const success = unlockSudokuDifficulty(difficultyToUnlock, difficultyInfo.cost);
-      console.log('Unlock result:', success);
       if (success) {
         setShowUnlockModal(false);
         setDifficultyToUnlock(null);
@@ -252,10 +242,12 @@ export const SudokuArena: React.FC = () => {
   if (!selectedDifficulty) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>🧩 Sudoku Challenge</Text>
-        <Text style={styles.subtitle}>Test your logic skills</Text>
+        <View style={styles.panelHeader}>
+          <Text style={styles.title}>🧩 Sudoku Challenge</Text>
+          <Text style={styles.subtitle}>Test your logic skills with number puzzles</Text>
+        </View>
 
-        <ScrollView contentContainerStyle={styles.difficultiesContainer}>
+        <View style={styles.difficultiesContainer}>
           {difficulties.map(difficulty => {
             const isUnlocked = sudokuProgress.unlockedDifficulties.includes(difficulty.id);
             const stats = sudokuProgress.stats[difficulty.id];
@@ -263,25 +255,23 @@ export const SudokuArena: React.FC = () => {
             return (
               <TouchableOpacity
                 key={difficulty.id}
-                style={[styles.difficultyCard, !isUnlocked && styles.lockedCard]}
-                onPress={() => {
-                  console.log('Difficulty card pressed:', difficulty.id, 'isUnlocked:', isUnlocked);
-                  if (isUnlocked) {
-                    startGame(difficulty.id);
-                  } else {
-                    handleUnlock(difficulty.id);
-                  }
-                }}
+                style={[
+                  styles.difficultyChip,
+                  !isUnlocked && styles.difficultyChipLocked
+                ]}
+                onPress={() => (isUnlocked ? startGame(difficulty.id) : handleUnlock(difficulty.id))}
               >
-                {!isUnlocked && <Text style={styles.lockIcon}>🔒</Text>}
-                <Text style={styles.difficultyName}>{difficulty.name}</Text>
+                <View style={styles.difficultyHeader}>
+                  <Text style={styles.difficultyName}>{difficulty.name}</Text>
+                  {!isUnlocked && <Text style={styles.lockIcon}>🔒</Text>}
+                </View>
                 <Text style={styles.difficultyDescription}>{difficulty.description}</Text>
 
                 {isUnlocked ? (
                   <>
-                    <View style={styles.statsContainer}>
-                      <Text style={styles.statText}>Played: {stats.played}</Text>
-                      <Text style={styles.statText}>Completed: {stats.completed}</Text>
+                    <View style={styles.statsRow}>
+                      <Text style={styles.statLabel}>Played: {stats.played}</Text>
+                      <Text style={styles.statLabel}>Completed: {stats.completed}</Text>
                     </View>
                     <View style={styles.rewardBadge}>
                       <Text style={styles.rewardText}>🪙 {difficulty.reward} coins</Text>
@@ -289,18 +279,26 @@ export const SudokuArena: React.FC = () => {
                   </>
                 ) : (
                   <View style={styles.unlockBadge}>
-                    <Text style={styles.unlockText}>Unlock: {difficulty.cost} coins</Text>
+                    <Text style={styles.unlockText}>
+                      {difficulty.cost > 0 ? `🔒 ${difficulty.cost} coins` : 'Free to play'}
+                    </Text>
                   </View>
                 )}
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
 
         <View style={styles.statsPanel}>
-          <Text style={styles.statsPanelText}>
-            Total Games: {sudokuProgress.totalGames} | Wins: {sudokuProgress.totalWins}
-          </Text>
+          <Text style={styles.statsPanelTitle}>Career Stats</Text>
+          <View style={styles.statsPanelRow}>
+            <Text style={styles.statsPanelLabel}>Total Games</Text>
+            <Text style={styles.statsPanelValue}>{sudokuProgress.totalGames}</Text>
+          </View>
+          <View style={styles.statsPanelRow}>
+            <Text style={styles.statsPanelLabel}>Completed</Text>
+            <Text style={styles.statsPanelValue}>{sudokuProgress.totalWins}</Text>
+          </View>
         </View>
 
         {/* Unlock Modal */}
@@ -355,6 +353,7 @@ export const SudokuArena: React.FC = () => {
             {row.map((cell, colIndex) => {
               const isInitial = initialBoard[rowIndex][colIndex] !== null;
               const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
+              const isHighlighted = cell !== null && cell === highlightedNumber;
               const isInThickBorder =
                 (rowIndex + 1) % 3 === 0 && rowIndex !== 8
                   ? 'bottom'
@@ -369,12 +368,17 @@ export const SudokuArena: React.FC = () => {
                     styles.cell,
                     isSelected && styles.selectedCell,
                     isInitial && styles.initialCell,
+                    isHighlighted && styles.highlightedCell,
                     isInThickBorder === 'bottom' && styles.thickBorderBottom,
                     isInThickBorder === 'right' && styles.thickBorderRight,
                   ]}
                   onPress={() => handleCellPress(rowIndex, colIndex)}
                 >
-                  <Text style={[styles.cellText, isInitial && styles.initialCellText]}>
+                  <Text style={[
+                    styles.cellText,
+                    isInitial && styles.initialCellText,
+                    isHighlighted && styles.highlightedCellText
+                  ]}>
                     {cell || ''}
                   </Text>
                 </TouchableOpacity>
@@ -389,10 +393,18 @@ export const SudokuArena: React.FC = () => {
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <TouchableOpacity
               key={num}
-              style={styles.numberButton}
+              style={[
+                styles.numberButton,
+                highlightedNumber === num && styles.numberButtonHighlighted
+              ]}
               onPress={() => handleNumberPress(num)}
             >
-              <Text style={styles.numberButtonText}>{num}</Text>
+              <Text style={[
+                styles.numberButtonText,
+                highlightedNumber === num && styles.numberButtonTextHighlighted
+              ]}>
+                {num}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -406,132 +418,125 @@ export const SudokuArena: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: palette.midnight,
+    gap: 18,
     padding: 20,
+    backgroundColor: '#0f172a',
+    borderRadius: 24,
+  },
+  panelHeader: {
+    gap: 6,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: palette.neonBlue,
-    textAlign: 'center',
-    marginTop: 20,
+    color: palette.neonYellow,
+    fontSize: 22,
+    fontWeight: '700',
   },
   subtitle: {
-    fontSize: 16,
     color: palette.silver,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 30,
+    fontSize: 13,
+    lineHeight: 18,
   },
   difficultiesContainer: {
-    paddingVertical: 20,
+    gap: 10,
   },
-  difficultyCard: {
-    marginBottom: 16,
+  difficultyChip: {
+    borderWidth: 1,
+    borderColor: '#1e293b',
     borderRadius: 16,
-    backgroundColor: palette.slate,
-    padding: 24,
-    borderWidth: 2,
-    borderColor: palette.electricPurple + '60',
-    shadowColor: palette.electricPurple,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    padding: 14,
+    backgroundColor: '#111b34',
+    gap: 8,
   },
-  lockedCard: {
-    opacity: 0.6,
-    borderColor: palette.slateLight + '60',
-    shadowOpacity: 0.1,
+  difficultyChipLocked: {
+    opacity: 0.65,
+    borderColor: '#1e293b',
   },
-  lockIcon: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    fontSize: 28,
-  },
-  difficultyName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: palette.neonBlue,
-    marginBottom: 6,
-    textShadowColor: palette.neonBlue + '60',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  difficultyDescription: {
-    fontSize: 15,
-    color: palette.silver,
-    marginBottom: 16,
-  },
-  statsContainer: {
+  difficultyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
   },
-  statText: {
-    fontSize: 12,
+  lockIcon: {
+    fontSize: 18,
+    opacity: 0.7,
+  },
+  difficultyName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: palette.neonBlue,
+  },
+  difficultyDescription: {
+    fontSize: 13,
     color: palette.silver,
+    marginBottom: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
   },
   rewardBadge: {
-    marginTop: 12,
+    marginTop: 8,
     backgroundColor: palette.midnight,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: palette.neonGreen + '80',
-    shadowColor: palette.neonGreen,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    elevation: 3,
   },
   rewardText: {
     color: palette.neonGreen,
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontWeight: '700',
+    fontSize: 13,
   },
   unlockBadge: {
-    marginTop: 12,
+    marginTop: 8,
     backgroundColor: palette.midnight,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    borderWidth: 2,
-    borderColor: palette.electricPurple + '80',
-    shadowColor: palette.electricPurple,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
   },
   unlockText: {
-    color: palette.electricPurple,
-    fontWeight: 'bold',
-    fontSize: 15,
+    color: '#fbbf24',
+    fontWeight: '700',
+    fontSize: 13,
   },
   statsPanel: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: palette.slate,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: palette.neonBlue + '40',
-    shadowColor: palette.neonBlue,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    padding: 14,
+    backgroundColor: '#101a34',
+    borderRadius: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#1f2d4d',
   },
-  statsPanelText: {
+  statsPanelTitle: {
     color: palette.neonBlue,
-    textAlign: 'center',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statsPanelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statsPanelLabel: {
+    color: '#94a3b8',
+    fontSize: 13,
+  },
+  statsPanelValue: {
+    color: palette.softWhite,
+    fontSize: 16,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
@@ -608,45 +613,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
   },
   backButton: {
-    padding: 8,
+    padding: 6,
   },
   backButtonText: {
-    color: palette.neonBlue,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: palette.neonYellow,
+    fontSize: 15,
+    fontWeight: '700',
   },
   gameTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: palette.neonBlue,
-    textShadowColor: palette.neonBlue + '40',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
   mistakesText: {
-    fontSize: 18,
+    fontSize: 16,
     color: palette.neonPink,
-    fontWeight: 'bold',
-    textShadowColor: palette.neonPink + '40',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+    fontWeight: '700',
   },
   boardContainer: {
     alignSelf: 'center',
-    backgroundColor: palette.slate,
-    padding: 8,
+    backgroundColor: '#111b34',
+    padding: 6,
     borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: palette.neonBlue + '60',
-    shadowColor: palette.neonBlue,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#1e293b',
   },
   row: {
     flexDirection: 'row',
@@ -657,80 +654,87 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 0.5,
-    borderColor: palette.slateLight,
-    backgroundColor: palette.midnight,
+    borderColor: '#334155',
+    backgroundColor: '#0f172a',
   },
   selectedCell: {
-    backgroundColor: palette.neonBlue + '20',
-    borderWidth: 2,
+    backgroundColor: palette.neonBlue + '25',
+    borderWidth: 1.5,
     borderColor: palette.neonBlue,
   },
   initialCell: {
-    backgroundColor: palette.slate,
+    backgroundColor: '#1a2642',
   },
   thickBorderBottom: {
-    borderBottomWidth: 2,
-    borderBottomColor: palette.neonBlue + '60',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#475569',
   },
   thickBorderRight: {
-    borderRightWidth: 2,
-    borderRightColor: palette.neonBlue + '60',
+    borderRightWidth: 1.5,
+    borderRightColor: '#475569',
   },
   cellText: {
-    fontSize: 22,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: palette.neonGreen,
   },
   initialCellText: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: palette.softWhite,
+  },
+  highlightedCell: {
+    backgroundColor: palette.neonYellow + '20',
+    borderWidth: 2,
+    borderColor: palette.neonYellow + '60',
+  },
+  highlightedCellText: {
+    color: palette.neonYellow,
+    fontWeight: '900',
   },
   controlsContainer: {
     alignItems: 'center',
+    gap: 12,
   },
   numbersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginBottom: 16,
+    gap: 8,
   },
   numberButton: {
-    width: (width - 80) / 9,
-    height: (width - 80) / 9,
+    width: (width - 100) / 9,
+    height: (width - 100) / 9,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: palette.slate,
-    margin: 4,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: palette.electricPurple + '80',
-    shadowColor: palette.electricPurple,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#111b34',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1e293b',
   },
   numberButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: palette.electricPurple,
+    fontSize: 20,
+    fontWeight: '700',
+    color: palette.neonBlue,
+  },
+  numberButtonHighlighted: {
+    backgroundColor: palette.neonYellow + '30',
+    borderColor: palette.neonYellow,
+    borderWidth: 2,
+  },
+  numberButtonTextHighlighted: {
+    color: palette.neonYellow,
   },
   clearButton: {
-    backgroundColor: palette.slate,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: palette.neonPink + '80',
-    shadowColor: palette.neonPink,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#111b34',
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: palette.neonPink + '60',
   },
   clearButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: palette.neonPink,
   },
 });
