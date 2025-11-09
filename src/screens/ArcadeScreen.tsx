@@ -4,6 +4,7 @@ import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 import { NeonChessArena } from '../components/NeonChessArena';
 import { MaiaChessArena } from '../components/MaiaChessArena';
+import { SudokuArena } from '../components/SudokuArena';
 
 type Lane = 0 | 1 | 2;
 
@@ -13,7 +14,7 @@ const laneLabels: Record<Lane, string> = {
   2: 'Right',
 };
 
-type ArcadeGameId = 'lanes' | 'reaction' | 'chess' | 'maiaChess';
+type ArcadeGameId = 'lanes' | 'reaction' | 'chess' | 'maiaChess' | 'sudoku';
 
 const arcadeGames: Array<{
   id: ArcadeGameId;
@@ -44,6 +45,12 @@ const arcadeGames: Array<{
     title: 'Maia AI Chess Challenge',
     subtitle: 'Face human-like AI opponents trained on real player data at different Elo levels.',
     icon: '🧠',
+  },
+  {
+    id: 'sudoku',
+    title: 'Sudoku Challenge',
+    subtitle: 'Test your logic with medium and expert puzzles. Unlock new difficulties with coins.',
+    icon: '🧩',
   },
 ];
 
@@ -97,6 +104,7 @@ export function ArcadeScreen() {
       ) : null}
       {activeGame === 'chess' ? <NeonChessArena /> : null}
       {activeGame === 'maiaChess' ? <MaiaChessArena /> : null}
+      {activeGame === 'sudoku' ? <SudokuArena /> : null}
     </ScrollView>
   );
 }

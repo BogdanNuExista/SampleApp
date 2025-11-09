@@ -68,6 +68,22 @@ type MaiaChessProgress = {
   totalGames: number;
 };
 
+// Sudoku types
+export type SudokuDifficulty = 'medium' | 'expert';
+
+type SudokuStats = {
+  played: number;
+  completed: number;
+  bestTime: number | null;
+};
+
+type SudokuProgress = {
+  unlockedDifficulties: SudokuDifficulty[];
+  totalGames: number;
+  totalWins: number;
+  stats: Record<SudokuDifficulty, SudokuStats>;
+};
+
 export type InventoryItem = InventoryCatalogItem & {
   obtainedAt: number;
 };
@@ -112,6 +128,7 @@ export type GameState = {
   activeSkin: string;
   chess: ChessProgress;
   maiaChess: MaiaChessProgress;
+  sudoku: SudokuProgress;
   inventory: InventoryItem[];
   achievements: UserAchievement[];
   musicEnabled: boolean;
@@ -151,6 +168,16 @@ const MAIA_CHESS_REWARD_COINS: Record<MaiaChessDifficulty, number> = {
   master: 50,
 };
 
+const createInitialSudokuState = (): SudokuProgress => ({
+  unlockedDifficulties: ['medium'], // Medium is unlocked by default
+  totalGames: 0,
+  totalWins: 0,
+  stats: {
+    medium: { played: 0, completed: 0, bestTime: null },
+    expert: { played: 0, completed: 0, bestTime: null },
+  },
+});
+
 const initialState: GameState = {
   profileName: 'Player One',
   coins: 0,
@@ -166,6 +193,7 @@ const initialState: GameState = {
   activeSkin: 'neon',
   chess: createInitialChessState(),
   maiaChess: createInitialMaiaChessState(),
+  sudoku: createInitialSudokuState(),
   inventory: [],
   achievements: [],
   musicEnabled: true,
@@ -223,6 +251,14 @@ type Action =
   | {
       type: 'UNLOCK_MAIA_DIFFICULTY';
       payload: { difficulty: MaiaChessDifficulty };
+    }
+  | {
+      type: 'COMPLETE_SUDOKU_GAME';
+      payload: { difficulty: SudokuDifficulty; completed: boolean; coinsEarned: number };
+    }
+  | {
+      type: 'UNLOCK_SUDOKU_DIFFICULTY';
+      payload: { difficulty: SudokuDifficulty; cost: number };
     }
   | { type: 'UNLOCK_ACHIEVEMENT'; payload: { achievementId: AchievementId } }
   | { type: 'TOGGLE_MUSIC'; payload?: { enabled: boolean } }
@@ -418,6 +454,42 @@ function reducer(state: GameState, action: Action): GameState {
         },
       };
     }
+    case 'COMPLETE_SUDOKU_GAME': {
+      const { difficulty, completed, coinsEarned } = action.payload;
+      return {
+        ...state,
+        coins: state.coins + coinsEarned,
+        totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        sudoku: {
+          ...state.sudoku,
+          totalGames: state.sudoku.totalGames + 1,
+          totalWins: completed ? state.sudoku.totalWins + 1 : state.sudoku.totalWins,
+          stats: {
+            ...state.sudoku.stats,
+            [difficulty]: {
+              ...state.sudoku.stats[difficulty],
+              played: state.sudoku.stats[difficulty].played + 1,
+              completed: completed 
+                ? state.sudoku.stats[difficulty].completed + 1 
+                : state.sudoku.stats[difficulty].completed,
+            },
+          },
+        },
+      };
+    }
+    case 'UNLOCK_SUDOKU_DIFFICULTY': {
+      const { difficulty, cost } = action.payload;
+      if (state.coins < cost) return state;
+      
+      return {
+        ...state,
+        coins: state.coins - cost,
+        sudoku: {
+          ...state.sudoku,
+          unlockedDifficulties: [...state.sudoku.unlockedDifficulties, difficulty],
+        },
+      };
+    }
     case 'HYDRATE': {
       const persisted = action.payload;
       const focusSessions = persisted.focusSessions
@@ -514,6 +586,19 @@ function reducer(state: GameState, action: Action): GameState {
             .filter(Boolean) as InventoryItem[]
         : [];
 
+      const persistedSudoku = persisted.sudoku;
+      const sudoku: SudokuProgress = persistedSudoku ? {
+        unlockedDifficulties: Array.isArray(persistedSudoku.unlockedDifficulties) 
+          ? persistedSudoku.unlockedDifficulties 
+          : [],
+        totalGames: persistedSudoku.totalGames ?? 0,
+        totalWins: persistedSudoku.totalWins ?? 0,
+        stats: {
+          medium: persistedSudoku.stats?.medium ?? { played: 0, completed: 0, bestTime: null },
+          expert: persistedSudoku.stats?.expert ?? { played: 0, completed: 0, bestTime: null },
+        },
+      } : createInitialSudokuState();
+
       return {
         ...state,
         ...persisted,
@@ -530,6 +615,7 @@ function reducer(state: GameState, action: Action): GameState {
           totalGames:
             persistedMaiaChess?.totalGames ?? initialState.maiaChess.totalGames,
         },
+        sudoku,
         inventory,
       };
     }
@@ -589,6 +675,8 @@ export type GameContextValue = {
   finishChessMatch: (match: ChessMatchRequest) => ChessMatchResolution;
   finishMaiaChessMatch: (match: MaiaChessMatchRequest) => MaiaChessMatchResolution;
   unlockMaiaDifficulty: (difficulty: MaiaChessDifficulty, cost: number) => boolean;
+  completeSudokuGame: (difficulty: SudokuDifficulty, completed: boolean, coinsEarned: number) => void;
+  unlockSudokuDifficulty: (difficulty: SudokuDifficulty, cost: number) => boolean;
   checkAndUnlockAchievements: () => AchievementId[];
   toggleMusic: (enabled?: boolean) => void;
   toggleSoundEffects: (enabled?: boolean) => void;
@@ -862,6 +950,26 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       return true;
     };
 
+    const completeSudokuGame = (difficulty: SudokuDifficulty, completed: boolean, coinsEarned: number) => {
+      dispatch({ 
+        type: 'COMPLETE_SUDOKU_GAME', 
+        payload: { difficulty, completed, coinsEarned } 
+      });
+    };
+
+    const unlockSudokuDifficulty = (difficulty: SudokuDifficulty, cost: number): boolean => {
+      if (state.sudoku.unlockedDifficulties.includes(difficulty)) {
+        return true; // Already unlocked
+      }
+
+      if (state.coins < cost) {
+        return false; // Not enough coins
+      }
+
+      dispatch({ type: 'UNLOCK_SUDOKU_DIFFICULTY', payload: { difficulty, cost } });
+      return true;
+    };
+
     // Returns list of currently unlocked achievement IDs
     // Note: Auto-checking happens via useEffect, this is for manual triggers
     const checkAndUnlockAchievements = (): AchievementId[] => {
@@ -889,6 +997,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       finishChessMatch,
       finishMaiaChessMatch,
       unlockMaiaDifficulty,
+      completeSudokuGame,
+      unlockSudokuDifficulty,
       checkAndUnlockAchievements,
       toggleMusic: (enabled?: boolean) =>
         dispatch({ type: 'TOGGLE_MUSIC', payload: enabled !== undefined ? { enabled } : undefined }),
