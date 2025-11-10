@@ -59,8 +59,21 @@ class MusicPlayerService {
   next() {
     const wasPlaying = this.isPlaying;
     this.currentTrackIndex = (this.currentTrackIndex + 1) % TRACKS.length;
-    this.stop();
-    if (wasPlaying) {
+    
+    if (this.currentSound) {
+      this.currentSound.stop(() => {
+        this.currentSound?.release();
+        this.currentSound = null;
+        this.isPlaying = false;
+        
+        if (wasPlaying) {
+          // Small delay to ensure clean transition
+          setTimeout(() => {
+            this.loadAndPlayTrack(this.currentTrackIndex);
+          }, 50);
+        }
+      });
+    } else if (wasPlaying) {
       this.loadAndPlayTrack(this.currentTrackIndex);
     }
   }
@@ -68,8 +81,21 @@ class MusicPlayerService {
   previous() {
     const wasPlaying = this.isPlaying;
     this.currentTrackIndex = (this.currentTrackIndex - 1 + TRACKS.length) % TRACKS.length;
-    this.stop();
-    if (wasPlaying) {
+    
+    if (this.currentSound) {
+      this.currentSound.stop(() => {
+        this.currentSound?.release();
+        this.currentSound = null;
+        this.isPlaying = false;
+        
+        if (wasPlaying) {
+          // Small delay to ensure clean transition
+          setTimeout(() => {
+            this.loadAndPlayTrack(this.currentTrackIndex);
+          }, 50);
+        }
+      });
+    } else if (wasPlaying) {
       this.loadAndPlayTrack(this.currentTrackIndex);
     }
   }
