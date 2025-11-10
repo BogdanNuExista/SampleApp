@@ -37,13 +37,23 @@ export function MusicControl() {
   };
 
   const handleNext = () => {
+    const wasPlaying = isPlaying;
     musicPlayer.next();
     setCurrentTrack(musicPlayer.getCurrentTrack());
+    // Update playing state after track changes
+    setTimeout(() => {
+      setIsPlaying(musicPlayer.getIsPlaying());
+    }, 100);
   };
 
   const handlePrevious = () => {
+    const wasPlaying = isPlaying;
     musicPlayer.previous();
     setCurrentTrack(musicPlayer.getCurrentTrack());
+    // Update playing state after track changes
+    setTimeout(() => {
+      setIsPlaying(musicPlayer.getIsPlaying());
+    }, 100);
   };
 
   if (hasError) {

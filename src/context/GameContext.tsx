@@ -69,7 +69,7 @@ type MaiaChessProgress = {
 };
 
 // Sudoku types
-export type SudokuDifficulty = 'medium' | 'expert';
+export type SudokuDifficulty = 'easy' | 'medium' | 'expert';
 
 type SudokuStats = {
   played: number;
@@ -123,7 +123,10 @@ export type GameState = {
   lastSessionDateISO?: string;
   focusSessions: FocusSession[];
   flashcards: Flashcard[];
-  arcadeHighScore: number;
+  arcadeHighScores: {
+    lanes: number;
+    reaction: number;
+  };
   ownedSkins: string[];
   activeSkin: string;
   chess: ChessProgress;
@@ -169,10 +172,11 @@ const MAIA_CHESS_REWARD_COINS: Record<MaiaChessDifficulty, number> = {
 };
 
 const createInitialSudokuState = (): SudokuProgress => ({
-  unlockedDifficulties: ['medium'], // Medium is unlocked by default
+  unlockedDifficulties: ['easy'], // Easy is unlocked by default
   totalGames: 0,
   totalWins: 0,
   stats: {
+    easy: { played: 0, completed: 0, bestTime: null },
     medium: { played: 0, completed: 0, bestTime: null },
     expert: { played: 0, completed: 0, bestTime: null },
   },
@@ -188,7 +192,10 @@ const initialState: GameState = {
   lastSessionDateISO: undefined,
   focusSessions: [],
   flashcards: [],
-  arcadeHighScore: 0,
+  arcadeHighScores: {
+    lanes: 0,
+    reaction: 0,
+  },
   ownedSkins: ['neon'],
   activeSkin: 'neon',
   chess: createInitialChessState(),
@@ -221,7 +228,7 @@ type Action =
       };
     }
   | { type: 'TOGGLE_FLASHCARD_FAVORITE'; payload: { id: string } }
-  | { type: 'RECORD_ARCADE_SCORE'; payload: { score: number } }
+  | { type: 'RECORD_ARCADE_SCORE'; payload: { game: 'lanes' | 'reaction'; score: number } }
   | { type: 'SPEND_COINS'; payload: { amount: number } }
   | {
       type: 'UNLOCK_SKIN';
@@ -365,12 +372,16 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, flashcards };
     }
     case 'RECORD_ARCADE_SCORE': {
-      const { score } = action.payload;
-      const isNewHighScore = score > state.arcadeHighScore;
+      const { game, score } = action.payload;
+      const currentHighScore = state.arcadeHighScores[game];
+      const isNewHighScore = score > currentHighScore;
       const bonusCoins = Math.max(0, Math.floor(score / 15));
       return {
         ...state,
-        arcadeHighScore: isNewHighScore ? score : state.arcadeHighScore,
+        arcadeHighScores: {
+          ...state.arcadeHighScores,
+          [game]: isNewHighScore ? score : currentHighScore,
+        },
         coins: state.coins + bonusCoins,
         totalCoinsEarned: state.totalCoinsEarned + bonusCoins,
       };
@@ -594,6 +605,7 @@ function reducer(state: GameState, action: Action): GameState {
         totalGames: persistedSudoku.totalGames ?? 0,
         totalWins: persistedSudoku.totalWins ?? 0,
         stats: {
+          easy: persistedSudoku.stats?.easy ?? { played: 0, completed: 0, bestTime: null },
           medium: persistedSudoku.stats?.medium ?? { played: 0, completed: 0, bestTime: null },
           expert: persistedSudoku.stats?.expert ?? { played: 0, completed: 0, bestTime: null },
         },
@@ -668,7 +680,7 @@ export type GameContextValue = {
     updates: Partial<Omit<Flashcard, 'id' | 'createdAt'>>,
   ) => void;
   toggleFlashcardFavorite: (id: string) => void;
-  recordArcadeScore: (score: number) => void;
+  recordArcadeScore: (game: 'lanes' | 'reaction', score: number) => void;
   spendCoins: (amount: number) => void;
   unlockSkin: (skinId: string, price: number) => boolean;
   setActiveSkin: (skinId: string) => void;
@@ -760,6 +772,35 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           case 'chess-legend':
             shouldUnlock = (state.chess.stats.easy.wins + state.chess.stats.normal.wins + state.chess.stats.hard.wins) >= 50;
             break;
+          case 'maia-apprentice':
+            shouldUnlock = state.maiaChess.stats.apprentice.wins >= 1;
+            break;
+          case 'maia-challenger':
+            shouldUnlock = (state.maiaChess.stats.apprentice.wins + state.maiaChess.stats.adept.wins + state.maiaChess.stats.master.wins) >= 5;
+            break;
+          case 'maia-champion':
+            shouldUnlock = state.maiaChess.stats.master.wins >= 1;
+            break;
+          case 'ai-slayer':
+            shouldUnlock = (state.maiaChess.stats.apprentice.wins + state.maiaChess.stats.adept.wins + state.maiaChess.stats.master.wins) >= 20;
+            break;
+          case 'sudoku-starter':
+            shouldUnlock = state.sudoku.stats.easy.completed >= 5;
+            break;
+          case 'sudoku-novice':
+            shouldUnlock = state.sudoku.totalWins >= 1;
+            break;
+          case 'sudoku-expert':
+            shouldUnlock = state.sudoku.totalWins >= 10;
+            break;
+          case 'sudoku-speed-demon':
+            shouldUnlock = 
+              (state.sudoku.stats.medium.bestTime !== null && state.sudoku.stats.medium.bestTime <= 300) ||
+              (state.sudoku.stats.expert.bestTime !== null && state.sudoku.stats.expert.bestTime <= 300);
+            break;
+          case 'puzzle-master':
+            shouldUnlock = state.sudoku.totalWins >= 25;
+            break;
           case 'journaler':
             shouldUnlock = state.flashcards.length >= 30;
             break;
@@ -771,6 +812,27 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             break;
           case 'coin-collector':
             shouldUnlock = state.totalCoinsEarned >= 1000;
+            break;
+          case 'lane-apprentice':
+            shouldUnlock = state.arcadeHighScores.lanes >= 100;
+            break;
+          case 'lane-expert':
+            shouldUnlock = state.arcadeHighScores.lanes >= 200;
+            break;
+          case 'lane-master':
+            shouldUnlock = state.arcadeHighScores.lanes >= 400;
+            break;
+          case 'reaction-novice':
+            shouldUnlock = state.arcadeHighScores.reaction >= 360;
+            break;
+          case 'reaction-expert':
+            shouldUnlock = state.arcadeHighScores.reaction >= 600;
+            break;
+          case 'reaction-legend':
+            shouldUnlock = state.arcadeHighScores.reaction >= 900;
+            break;
+          case 'arcade-champion':
+            shouldUnlock = state.arcadeHighScores.lanes >= 400 && state.arcadeHighScores.reaction >= 900;
             break;
         }
 
@@ -790,6 +852,14 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     state.chess.stats.easy.wins,
     state.chess.stats.normal.wins,
     state.chess.stats.hard.wins,
+    state.maiaChess.stats.apprentice.wins,
+    state.maiaChess.stats.adept.wins,
+    state.maiaChess.stats.master.wins,
+    state.sudoku.totalWins,
+    state.sudoku.stats.medium.bestTime,
+    state.sudoku.stats.expert.bestTime,
+    state.arcadeHighScores.lanes,
+    state.arcadeHighScores.reaction,
     state.flashcards.length,
     state.streak,
     state.totalCoinsEarned,
@@ -988,8 +1058,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         dispatch({ type: 'UPDATE_FLASHCARD', payload: { id, updates } }),
       toggleFlashcardFavorite: id =>
         dispatch({ type: 'TOGGLE_FLASHCARD_FAVORITE', payload: { id } }),
-      recordArcadeScore: score =>
-        dispatch({ type: 'RECORD_ARCADE_SCORE', payload: { score } }),
+      recordArcadeScore: (game, score) =>
+        dispatch({ type: 'RECORD_ARCADE_SCORE', payload: { game, score } }),
       spendCoins: amount => dispatch({ type: 'SPEND_COINS', payload: { amount } }),
       unlockSkin,
       setActiveSkin: skinId =>

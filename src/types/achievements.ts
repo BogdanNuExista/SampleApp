@@ -6,10 +6,26 @@ export type AchievementId =
   | 'chess-beginner'
   | 'chess-master'
   | 'chess-legend'
+  | 'maia-apprentice'
+  | 'maia-challenger'
+  | 'maia-champion'
+  | 'ai-slayer'
+  | 'sudoku-starter'
+  | 'sudoku-novice'
+  | 'sudoku-expert'
+  | 'sudoku-speed-demon'
+  | 'puzzle-master'
   | 'journaler'
   | 'mood-explorer'
   | 'streak-keeper'
-  | 'coin-collector';
+  | 'coin-collector'
+  | 'lane-apprentice'
+  | 'lane-expert'
+  | 'lane-master'
+  | 'reaction-novice'
+  | 'reaction-expert'
+  | 'reaction-legend'
+  | 'arcade-champion';
 
 export type Achievement = {
   id: AchievementId;
@@ -17,7 +33,7 @@ export type Achievement = {
   description: string;
   icon: string;
   requirement: number;
-  category: 'focus' | 'chess' | 'journal' | 'coins';
+  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade';
 };
 
 export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
@@ -77,6 +93,78 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
     requirement: 50,
     category: 'chess',
   },
+  'maia-apprentice': {
+    id: 'maia-apprentice',
+    title: 'AI Apprentice',
+    description: 'Defeat Maia AI on Easy difficulty',
+    icon: '🤖',
+    requirement: 1,
+    category: 'maia',
+  },
+  'maia-challenger': {
+    id: 'maia-challenger',
+    title: 'AI Challenger',
+    description: 'Win 5 Maia AI matches',
+    icon: '🎯',
+    requirement: 5,
+    category: 'maia',
+  },
+  'maia-champion': {
+    id: 'maia-champion',
+    title: 'AI Champion',
+    description: 'Defeat Maia AI on Hard difficulty',
+    icon: '🏆',
+    requirement: 1,
+    category: 'maia',
+  },
+  'ai-slayer': {
+    id: 'ai-slayer',
+    title: 'AI Slayer',
+    description: 'Win 20 total Maia AI matches',
+    icon: '⚔️',
+    requirement: 20,
+    category: 'maia',
+  },
+  'sudoku-starter': {
+    id: 'sudoku-starter',
+    title: 'Sudoku Starter',
+    description: 'Complete 5 easy Sudoku puzzles',
+    icon: '🌟',
+    requirement: 5,
+    category: 'sudoku',
+  },
+  'sudoku-novice': {
+    id: 'sudoku-novice',
+    title: 'Sudoku Novice',
+    description: 'Complete your first Sudoku puzzle',
+    icon: '🔢',
+    requirement: 1,
+    category: 'sudoku',
+  },
+  'sudoku-expert': {
+    id: 'sudoku-expert',
+    title: 'Sudoku Expert',
+    description: 'Complete 10 Sudoku puzzles',
+    icon: '🧩',
+    requirement: 10,
+    category: 'sudoku',
+  },
+  'sudoku-speed-demon': {
+    id: 'sudoku-speed-demon',
+    title: 'Speed Demon',
+    description: 'Complete a Sudoku in under 5 minutes',
+    icon: '⚡',
+    requirement: 5,
+    category: 'sudoku',
+  },
+  'puzzle-master': {
+    id: 'puzzle-master',
+    title: 'Puzzle Master',
+    description: 'Complete 25 total Sudoku puzzles',
+    icon: '🎓',
+    requirement: 25,
+    category: 'sudoku',
+  },
   'journaler': {
     id: 'journaler',
     title: 'Journaler',
@@ -108,6 +196,62 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
     icon: '🪙',
     requirement: 1000,
     category: 'coins',
+  },
+  'lane-apprentice': {
+    id: 'lane-apprentice',
+    title: 'Lane Apprentice',
+    description: 'Score 100+ in Hyper Lane Defender',
+    icon: '🎯',
+    requirement: 100,
+    category: 'arcade',
+  },
+  'lane-expert': {
+    id: 'lane-expert',
+    title: 'Lane Expert',
+    description: 'Score 200+ in Hyper Lane Defender',
+    icon: '🚀',
+    requirement: 200,
+    category: 'arcade',
+  },
+  'lane-master': {
+    id: 'lane-master',
+    title: 'Lane Master',
+    description: 'Score 400+ in Hyper Lane Defender',
+    icon: '👑',
+    requirement: 400,
+    category: 'arcade',
+  },
+  'reaction-novice': {
+    id: 'reaction-novice',
+    title: 'Reaction Novice',
+    description: 'Score 360+ in Neon Reaction Pulse',
+    icon: '⚡',
+    requirement: 360,
+    category: 'arcade',
+  },
+  'reaction-expert': {
+    id: 'reaction-expert',
+    title: 'Reaction Expert',
+    description: 'Score 600+ in Neon Reaction Pulse',
+    icon: '🌟',
+    requirement: 600,
+    category: 'arcade',
+  },
+  'reaction-legend': {
+    id: 'reaction-legend',
+    title: 'Reaction Legend',
+    description: 'Score 900+ in Neon Reaction Pulse',
+    icon: '💫',
+    requirement: 900,
+    category: 'arcade',
+  },
+  'arcade-champion': {
+    id: 'arcade-champion',
+    title: 'Arcade Champion',
+    description: 'Master both arcade games (400+ lanes, 900+ reaction)',
+    icon: '🏆',
+    requirement: 1,
+    category: 'arcade',
   },
 };
 

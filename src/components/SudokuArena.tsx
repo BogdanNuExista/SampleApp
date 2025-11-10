@@ -8,11 +8,12 @@ import {
   Modal,
   Dimensions,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 import { SudokuDifficulty } from '../context/GameContext';
-import { MEDIUM_PUZZLES, EXPERT_PUZZLES } from '../constants/sudokuPuzzles';
+import { EASY_PUZZLES, MEDIUM_PUZZLES, EXPERT_PUZZLES } from '../constants/sudokuPuzzles';
 
 interface SudokuPuzzle {
   puzzle: string;
@@ -33,6 +34,7 @@ export const SudokuArena: React.FC = () => {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [difficultyToUnlock, setDifficultyToUnlock] = useState<SudokuDifficulty | null>(null);
   const [highlightedNumber, setHighlightedNumber] = useState<number | null>(null);
+  const [wrongCells, setWrongCells] = useState<Set<string>>(new Set());
 
   const difficulties: Array<{
     id: SudokuDifficulty;
@@ -41,6 +43,13 @@ export const SudokuArena: React.FC = () => {
     reward: number;
     description: string;
   }> = [
+    {
+      id: 'easy',
+      name: 'Easy',
+      cost: 0, // Free to play
+      reward: 10,
+      description: 'Beginner puzzles',
+    },
     {
       id: 'medium',
       name: 'Medium',
@@ -61,6 +70,7 @@ export const SudokuArena: React.FC = () => {
 
   // Use pre-loaded puzzle data
   const puzzles = useMemo(() => ({
+    easy: EASY_PUZZLES.map(puzzle => ({ puzzle, solution: '' })),
     medium: MEDIUM_PUZZLES.map(puzzle => ({ puzzle, solution: '' })),
     expert: EXPERT_PUZZLES.map(puzzle => ({ puzzle, solution: '' })),
   }), []);
@@ -137,6 +147,7 @@ export const SudokuArena: React.FC = () => {
     setSelectedDifficulty(difficulty);
     setSelectedCell(null);
     setMistakes(0);
+    setWrongCells(new Set());
   };
 
   const handleCellPress = (row: number, col: number) => {
@@ -168,14 +179,25 @@ export const SudokuArena: React.FC = () => {
     newBoard[row][col] = num;
     setBoard(newBoard);
 
+    const cellKey = `${row}-${col}`;
+    
     // Check if correct
     if (num !== correctNumber) {
+      // Mark cell as wrong
+      setWrongCells(prev => new Set(prev).add(cellKey));
       setMistakes(prev => prev + 1);
       if (mistakes + 1 >= 3) {
         Alert.alert('Game Over', 'Too many mistakes! Try again.', [
           { text: 'OK', onPress: () => setSelectedDifficulty(null) },
         ]);
       }
+    } else {
+      // Remove from wrong cells if correct
+      setWrongCells(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cellKey);
+        return newSet;
+      });
     }
 
     // Check if puzzle is complete
@@ -192,6 +214,14 @@ export const SudokuArena: React.FC = () => {
     const newBoard = board.map(r => [...r]);
     newBoard[row][col] = null;
     setBoard(newBoard);
+    
+    // Remove from wrong cells
+    const cellKey = `${row}-${col}`;
+    setWrongCells(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(cellKey);
+      return newSet;
+    });
   };
 
   const checkCompletion = (currentBoard: (number | null)[][], solution: (number | null)[][]) => {
@@ -303,34 +333,42 @@ export const SudokuArena: React.FC = () => {
 
         {/* Unlock Modal */}
         <Modal visible={showUnlockModal} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Unlock Difficulty?</Text>
-              {difficultyToUnlock && (
-                <>
-                  <Text style={styles.modalText}>
-                    Unlock {difficulties.find(d => d.id === difficultyToUnlock)?.name} difficulty for{' '}
-                    {difficulties.find(d => d.id === difficultyToUnlock)?.cost} coins?
-                  </Text>
-                  <Text style={styles.modalSubtext}>Your coins: {state.coins}</Text>
-                </>
-              )}
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowUnlockModal(false)}
-                >
-                  <Text style={styles.modalButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={confirmUnlock}
-                >
-                  <Text style={styles.modalButtonText}>Unlock</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowUnlockModal(false)}>
+            <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+              <Text style={styles.modalTitle}>Unlock Difficulty</Text>
+              {difficultyToUnlock && (() => {
+                const diff = difficulties.find(d => d.id === difficultyToUnlock);
+                if (!diff) return null;
+                const canAfford = state.coins >= diff.cost;
+                return (
+                  <>
+                    <Text style={styles.modalSubtitle}>{diff.name}</Text>
+                    <Text style={styles.unlockDescription}>{diff.description}</Text>
+                    <View style={styles.costRow}>
+                      <Text style={styles.costLabel}>Cost</Text>
+                      <Text style={styles.costValue}>{diff.cost} 💰</Text>
+                    </View>
+                    <View style={styles.costRow}>
+                      <Text style={styles.costLabel}>Your Coins</Text>
+                      <Text style={[styles.costValue, !canAfford && styles.costInsufficient]}>
+                        {state.coins} 💰
+                      </Text>
+                    </View>
+                    {canAfford ? (
+                      <Pressable style={styles.modalButton} onPress={confirmUnlock}>
+                        <Text style={styles.modalButtonText}>Unlock Now</Text>
+                      </Pressable>
+                    ) : (
+                      <Text style={styles.insufficientText}>Not enough coins!</Text>
+                    )}
+                    <Pressable style={styles.modalCancelButton} onPress={() => setShowUnlockModal(false)}>
+                      <Text style={styles.modalCancelText}>Cancel</Text>
+                    </Pressable>
+                  </>
+                );
+              })()}
+            </Pressable>
+          </Pressable>
         </Modal>
       </View>
     );
@@ -354,6 +392,8 @@ export const SudokuArena: React.FC = () => {
               const isInitial = initialBoard[rowIndex][colIndex] !== null;
               const isSelected = selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
               const isHighlighted = cell !== null && cell === highlightedNumber;
+              const cellKey = `${rowIndex}-${colIndex}`;
+              const isWrong = wrongCells.has(cellKey);
               const isInThickBorder =
                 (rowIndex + 1) % 3 === 0 && rowIndex !== 8
                   ? 'bottom'
@@ -369,6 +409,7 @@ export const SudokuArena: React.FC = () => {
                     isSelected && styles.selectedCell,
                     isInitial && styles.initialCell,
                     isHighlighted && styles.highlightedCell,
+                    isWrong && styles.wrongCell,
                     isInThickBorder === 'bottom' && styles.thickBorderBottom,
                     isInThickBorder === 'right' && styles.thickBorderRight,
                   ]}
@@ -377,7 +418,8 @@ export const SudokuArena: React.FC = () => {
                   <Text style={[
                     styles.cellText,
                     isInitial && styles.initialCellText,
-                    isHighlighted && styles.highlightedCellText
+                    isHighlighted && styles.highlightedCellText,
+                    isWrong && styles.wrongCellText
                   ]}>
                     {cell || ''}
                   </Text>
@@ -538,76 +580,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  modalOverlay: {
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
-  modalContent: {
-    backgroundColor: palette.slate,
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#0f172a',
     borderRadius: 20,
-    padding: 28,
-    width: '80%',
-    borderWidth: 3,
-    borderColor: palette.electricPurple,
-    shadowColor: palette.electricPurple,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 10,
+    padding: 20,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#1f2d4d',
   },
   modalTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: palette.neonBlue,
-    marginBottom: 16,
-    textAlign: 'center',
-    textShadowColor: palette.neonBlue + '60',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    color: palette.neonYellow,
+    fontSize: 20,
+    fontWeight: '700',
   },
-  modalText: {
-    fontSize: 16,
-    color: palette.softWhite,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalSubtext: {
-    fontSize: 14,
+  modalSubtitle: {
     color: palette.silver,
-    marginBottom: 24,
-    textAlign: 'center',
   },
-  modalButtons: {
+  unlockDescription: {
+    color: '#94a3b8',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  costRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  costLabel: {
+    color: '#94a3b8',
+    fontSize: 14,
+  },
+  costValue: {
+    color: palette.softWhite,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  costInsufficient: {
+    color: palette.danger,
+  },
+  insufficientText: {
+    color: palette.danger,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: 8,
   },
   modalButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    marginHorizontal: 6,
-    borderWidth: 2,
-  },
-  cancelButton: {
-    backgroundColor: palette.midnight,
-    borderColor: palette.slateLight,
-  },
-  confirmButton: {
-    backgroundColor: palette.electricPurple,
-    borderColor: palette.electricPurple,
-    shadowColor: palette.electricPurple,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 5,
+    marginTop: 4,
+    backgroundColor: palette.neonPink,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
   modalButtonText: {
-    color: palette.softWhite,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 16,
+    color: palette.midnight,
+    fontWeight: '700',
+  },
+  modalCancelButton: {
+    marginTop: 4,
+    backgroundColor: 'transparent',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#475569',
+  },
+  modalCancelText: {
+    color: '#94a3b8',
+    fontWeight: '600',
   },
   gameHeader: {
     flexDirection: 'row',
@@ -690,6 +738,18 @@ const styles = StyleSheet.create({
   highlightedCellText: {
     color: palette.neonYellow,
     fontWeight: '900',
+  },
+  wrongCell: {
+    backgroundColor: palette.neonPink + '25',
+    borderWidth: 2,
+    borderColor: palette.neonPink + '80',
+  },
+  wrongCellText: {
+    color: palette.neonPink,
+    fontWeight: '900',
+    textShadowColor: palette.neonPink + '60',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
   controlsContainer: {
     alignItems: 'center',

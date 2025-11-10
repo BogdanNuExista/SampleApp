@@ -5,7 +5,7 @@ import { ACHIEVEMENTS, AchievementId } from '../types/achievements';
 import { palette } from '../theme/colors';
 
 export function AchievementsScreen() {
-  const { state: { achievements, focusSessions, chess, flashcards, streak, bestSessionMinutes, totalCoinsEarned } } = useGame();
+  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned } } = useGame();
 
   const achievementsList = useMemo(() => {
     return Object.values(ACHIEVEMENTS).map(achievement => {
@@ -36,6 +36,36 @@ export function AchievementsScreen() {
         case 'chess-legend':
           progress = chess.stats.easy.wins + chess.stats.normal.wins + chess.stats.hard.wins;
           break;
+        case 'maia-apprentice':
+          progress = maiaChess.stats.apprentice.wins;
+          break;
+        case 'maia-challenger':
+          progress = maiaChess.stats.apprentice.wins + maiaChess.stats.adept.wins + maiaChess.stats.master.wins;
+          break;
+        case 'maia-champion':
+          progress = maiaChess.stats.master.wins;
+          break;
+        case 'ai-slayer':
+          progress = maiaChess.stats.apprentice.wins + maiaChess.stats.adept.wins + maiaChess.stats.master.wins;
+          break;
+        case 'sudoku-starter':
+          progress = sudoku.stats.easy.completed;
+          break;
+        case 'sudoku-novice':
+          progress = sudoku.totalWins;
+          break;
+        case 'sudoku-expert':
+          progress = sudoku.totalWins;
+          break;
+        case 'sudoku-speed-demon':
+          progress = Math.min(
+            sudoku.stats.medium.bestTime ?? 999,
+            sudoku.stats.expert.bestTime ?? 999
+          );
+          break;
+        case 'puzzle-master':
+          progress = sudoku.totalWins;
+          break;
         case 'journaler':
           progress = flashcards.length;
           break;
@@ -47,6 +77,28 @@ export function AchievementsScreen() {
           break;
         case 'coin-collector':
           progress = totalCoinsEarned;
+          break;
+        case 'lane-apprentice':
+          progress = arcadeHighScores.lanes;
+          break;
+        case 'lane-expert':
+          progress = arcadeHighScores.lanes;
+          break;
+        case 'lane-master':
+          progress = arcadeHighScores.lanes;
+          break;
+        case 'reaction-novice':
+          progress = arcadeHighScores.reaction;
+          break;
+        case 'reaction-expert':
+          progress = arcadeHighScores.reaction;
+          break;
+        case 'reaction-legend':
+          progress = arcadeHighScores.reaction;
+          break;
+        case 'arcade-champion':
+          // Show combined progress: 1 when both requirements met
+          progress = (arcadeHighScores.lanes >= 400 && arcadeHighScores.reaction >= 900) ? 1 : 0;
           break;
       }
 
@@ -62,7 +114,7 @@ export function AchievementsScreen() {
       }
       return 0;
     });
-  }, [achievements, focusSessions, chess, flashcards, streak, bestSessionMinutes, totalCoinsEarned]);
+  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned]);
 
   const unlockedCount = achievements.length;
   const totalCount = Object.keys(ACHIEVEMENTS).length;

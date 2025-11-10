@@ -57,15 +57,21 @@ class MusicPlayerService {
   }
 
   next() {
+    const wasPlaying = this.isPlaying;
     this.currentTrackIndex = (this.currentTrackIndex + 1) % TRACKS.length;
     this.stop();
-    this.loadAndPlayTrack(this.currentTrackIndex);
+    if (wasPlaying) {
+      this.loadAndPlayTrack(this.currentTrackIndex);
+    }
   }
 
   previous() {
+    const wasPlaying = this.isPlaying;
     this.currentTrackIndex = (this.currentTrackIndex - 1 + TRACKS.length) % TRACKS.length;
     this.stop();
-    this.loadAndPlayTrack(this.currentTrackIndex);
+    if (wasPlaying) {
+      this.loadAndPlayTrack(this.currentTrackIndex);
+    }
   }
 
   setVolume(vol: number) {

@@ -56,7 +56,7 @@ const arcadeGames: Array<{
 
 export function ArcadeScreen() {
   const {
-    state: { coins, arcadeHighScore },
+    state: { coins, arcadeHighScores },
     recordArcadeScore,
   } = useGame();
   const [activeGame, setActiveGame] = useState<ArcadeGameId>('lanes');
@@ -95,12 +95,15 @@ export function ArcadeScreen() {
 
       {activeGame === 'lanes' ? (
         <HyperLaneDefender
-          highScore={arcadeHighScore}
-          recordScore={recordArcadeScore}
+          highScore={arcadeHighScores.lanes}
+          recordScore={(score) => recordArcadeScore('lanes', score)}
         />
       ) : null}
       {activeGame === 'reaction' ? (
-        <ReactionPulseArena recordScore={recordArcadeScore} />
+        <ReactionPulseArena 
+          highScore={arcadeHighScores.reaction}
+          recordScore={(score) => recordArcadeScore('reaction', score)} 
+        />
       ) : null}
       {activeGame === 'chess' ? <NeonChessArena /> : null}
       {activeGame === 'maiaChess' ? <MaiaChessArena /> : null}
@@ -209,12 +212,13 @@ function HyperLaneDefender({ highScore, recordScore }: HyperLaneDefenderProps) {
 }
 
 type ReactionPulseArenaProps = {
+  highScore: number;
   recordScore: (score: number) => void;
 };
 
 type ReactionStatus = 'idle' | 'arming' | 'ready' | 'tooSoon' | 'success' | 'finished';
 
-function ReactionPulseArena({ recordScore }: ReactionPulseArenaProps) {
+function ReactionPulseArena({ highScore, recordScore }: ReactionPulseArenaProps) {
   const maxRounds = 5;
   const maxStrikes = 3;
   const [status, setStatus] = useState<ReactionStatus>('idle');
