@@ -108,6 +108,15 @@ export function useMaiaChessEngine() {
         throw new Error(`Maia ${difficulty} model not ready yet`);
       }
 
+      // Resolve I/O names by searching for specific patterns (order is not guaranteed in ONNX)
+      const INPUT_NAME =
+        session.inputNames.find((n) => n.endsWith('/input/planes') || n.includes('planes')) ??
+        session.inputNames[0];
+
+      const POLICY_NAME =
+        session.outputNames.find((n) => n.endsWith('/output/policy') || n.includes('policy')) ??
+        session.outputNames[0];
+
       try {
         // Get all legal moves
         const legalMoves = game.moves({ verbose: true }) as Move[];
@@ -118,28 +127,27 @@ export function useMaiaChessEngine() {
         // Encode the board state for the neural network
         const boardTensor = encodeBoardState(game);
         const feeds: Record<string, Tensor> = {
-          [session.inputNames[0]]: boardTensor,
+          [INPUT_NAME]: boardTensor,
         };
 
         // Run inference
         const output = await session.run(feeds);
-        const outputName = session.outputNames[0];
-        const outputTensor = output[outputName];
+        const policyTensor = output[POLICY_NAME];
 
-        if (!outputTensor || !outputTensor.data) {
-          throw new Error('Model returned no data');
+        if (!policyTensor || !policyTensor.data) {
+          throw new Error('Policy output missing from ONNX results');
         }
 
-        // Get move probabilities and select the best legal move based on ONNX predictions
-        const moveProbabilities = Array.from(outputTensor.data as Float32Array);
+        // Get move logits (raw policy output)
+        const logits = policyTensor.data as Float32Array;
         
-        console.log(`[${difficulty}] Policy output size:`, moveProbabilities.length);
+        console.log(`[${difficulty}] Policy output size:`, logits.length);
         console.log(`[${difficulty}] Legal moves:`, legalMoves.length);
-        console.log(`[${difficulty}] Max probability:`, Math.max(...moveProbabilities).toFixed(4));
+        console.log(`[${difficulty}] Max logit:`, Math.max(...logits).toFixed(4));
         
-        const bestMove = selectBestLegalMove(legalMoves, moveProbabilities, game, difficulty);
+        const bestMove = selectBestLegalMove(legalMoves, logits, game, difficulty);
 
-        return bestMove;
+        return bestMove ?? null;
       } catch (inferenceError) {
         console.error('Maia inference error:', inferenceError);
         // Fallback to random legal move if inference fails
@@ -321,141 +329,133 @@ function encodeBoardState(game: Chess): Tensor {
 }
 
 /**
- * Lc0 move encoding: 1858 possible moves
- * Structure:
- * - 56 queen-style directions × 64 squares (but only valid ones)
- * - 8 knight moves × 64 squares
- * - Underpromotions (3 types × directions)
- * 
- * The encoding is: fromSquare * 73 + directionIndex
- * where directionIndex encodes the type and direction of move
+ * Convert a legal Move (from Chess.js) to Lc0's 1858 policy index.
+ * Side-to-move perspective is enforced by flipping when black is on move.
+ *
+ * Planes per from-square (73):
+ *  - 0..55  : sliding (8 dirs × 7 steps)
+ *  - 56..63 : knight (8)
+ *  - 64..72 : underpromotions (R/B/N × left|straight|right)
  */
 function getMoveIndexLc0(move: Move, game: Chess): number {
-  const fromFile = move.from.charCodeAt(0) - 'a'.charCodeAt(0);
-  const fromRank = parseInt(move.from[1], 10) - 1;
-  const toFile = move.to.charCodeAt(0) - 'a'.charCodeAt(0);
-  const toRank = parseInt(move.to[1], 10) - 1;
-  
-  // Flip if black to move (Lc0 always encodes from current player's perspective)
-  const isWhiteTurn = game.turn() === 'w';
-  const fromSquare = isWhiteTurn 
-    ? fromRank * 8 + fromFile 
-    : (7 - fromRank) * 8 + (7 - fromFile);
-  
-  const deltaFile = toFile - fromFile;
-  const deltaRank = toRank - fromRank;
-  
-  // Adjust deltas for black's perspective
-  const actualDeltaFile = isWhiteTurn ? deltaFile : -deltaFile;
-  const actualDeltaRank = isWhiteTurn ? deltaRank : -deltaRank;
-  
-  // Determine direction index (0-72)
-  let directionIndex = -1;
-  
-  // Knight moves (8 directions): indices 56-63
-  const knightMoves = [
-    [2, 1], [1, 2], [-1, 2], [-2, 1],
-    [-2, -1], [-1, -2], [1, -2], [2, -1]
+  const usWhite = game.turn() === 'w';
+
+  const fFile = move.from.charCodeAt(0) - 97; // a→0 .. h→7
+  const fRank = parseInt(move.from[1], 10) - 1; // '1'→0 .. '8'→7
+  const tFile = move.to.charCodeAt(0) - 97;
+  const tRank = parseInt(move.to[1], 10) - 1;
+
+  // Flip board for black-to-move
+  const ff = usWhite ? fFile : 7 - fFile;
+  const fr = usWhite ? fRank : 7 - fRank;
+  const tf = usWhite ? tFile : 7 - tFile;
+  const tr = usWhite ? tRank : 7 - tRank;
+
+  const df = tf - ff;
+  const dr = tr - fr;
+
+  const fromSquare = fr * 8 + ff; // 0..63
+
+  // 1) Knight planes: 56..63
+  const KN: Array<[number, number]> = [
+    [2, 1],
+    [1, 2],
+    [-1, 2],
+    [-2, 1],
+    [-2, -1],
+    [-1, -2],
+    [1, -2],
+    [2, -1],
   ];
-  
-  for (let i = 0; i < knightMoves.length; i++) {
-    if (actualDeltaFile === knightMoves[i][0] && actualDeltaRank === knightMoves[i][1]) {
-      directionIndex = 56 + i;
-      break;
+  for (let i = 0; i < 8; i++) {
+    if (df === KN[i][0] && dr === KN[i][1]) {
+      return fromSquare * 73 + (56 + i);
     }
   }
-  
-  // Queen moves (56 directions): indices 0-55
-  // 7 directions × 8 ways (N, NE, E, SE, S, SW, W, NW) × (1-7 squares)
-  if (directionIndex === -1) {
-    const directions = [
-      [0, 1],   // N
-      [1, 1],   // NE
-      [1, 0],   // E
-      [1, -1],  // SE
-      [0, -1],  // S
-      [-1, -1], // SW
-      [-1, 0],  // W
-      [-1, 1],  // NW
-    ];
-    
-    for (let dirIdx = 0; dirIdx < directions.length; dirIdx++) {
-      const [df, dr] = directions[dirIdx];
-      if (df === 0 && dr === 0) continue;
-      
-      // Check if move is along this direction
-      if (actualDeltaFile !== 0 || actualDeltaRank !== 0) {
-        const steps = Math.max(Math.abs(actualDeltaFile), Math.abs(actualDeltaRank));
-        const normalizedDf = actualDeltaFile / steps;
-        const normalizedDr = actualDeltaRank / steps;
-        
-        if (Math.abs(normalizedDf - df) < 0.01 && Math.abs(normalizedDr - dr) < 0.01) {
-          // Found the direction, now determine distance (1-7)
-          directionIndex = dirIdx * 7 + (steps - 1);
-          break;
-        }
+
+  // 2) Sliding planes: 0..55 (8 dirs × 7 steps), exact integer match
+  const DIRS: Array<[number, number]> = [
+    [0, 1],  // N
+    [1, 1],  // NE
+    [1, 0],  // E
+    [1, -1], // SE
+    [0, -1], // S
+    [-1, -1],// SW
+    [-1, 0], // W
+    [-1, 1], // NW
+  ];
+
+  if (df !== 0 || dr !== 0) {
+    for (let d = 0; d < 8; d++) {
+      const [vx, vy] = DIRS[d];
+
+      // Determine steps along this direction
+      let steps = -1;
+      if (vx === 0 && vy !== 0 && df === 0 && dr * vy > 0) {
+        steps = Math.abs(dr);
+      } else if (vy === 0 && vx !== 0 && dr === 0 && df * vx > 0) {
+        steps = Math.abs(df);
+      } else if (vx !== 0 && vy !== 0 && Math.abs(df) === Math.abs(dr) && df * vx > 0 && dr * vy > 0) {
+        steps = Math.abs(df); // or abs(dr)
+      }
+
+      if (steps >= 1 && steps <= 7) {
+        return fromSquare * 73 + (d * 7 + (steps - 1)); // 0..55
       }
     }
   }
-  
-  // Underpromotions: indices 64-72 (simplified - full encoding is more complex)
-  // For now, treat promotions as regular pawn moves
+
+  // 3) Underpromotions: 64..72 (R,B,N × left|straight|right)
   if (move.promotion && move.promotion !== 'q') {
-    // Knight promotion
-    if (move.promotion === 'n') {
-      directionIndex = 64 + (actualDeltaFile + 1); // Left, straight, right
-    } else if (move.promotion === 'b') {
-      directionIndex = 67 + (actualDeltaFile + 1);
-    } else if (move.promotion === 'r') {
-      directionIndex = 70 + (actualDeltaFile + 1);
+    // Promotions advance one rank (north in "us" frame). Lane by df: -1,0,1
+    const lane = df === -1 ? 0 : df === 0 ? 1 : df === 1 ? 2 : -1;
+    if (dr === 1 && lane !== -1) {
+      const base =
+        move.promotion === 'n' ? 64 :
+        move.promotion === 'b' ? 67 :
+        move.promotion === 'r' ? 70 : -1;
+      if (base !== -1) {
+        return fromSquare * 73 + (base + lane); // 64..72
+      }
     }
   }
-  
-  if (directionIndex === -1) {
-    // Fallback - shouldn't happen for valid moves
-    return 0;
-  }
-  
-  // Final index: fromSquare * 73 + directionIndex
-  const moveIndex = fromSquare * 73 + directionIndex;
-  return Math.min(moveIndex, 1857); // Clamp to valid range
+
+  // Fallback (should not occur for legal moves)
+  return fromSquare * 73;
 }
 
 /**
- * Selects the best legal move based purely on the model's Lc0 policy output.
+ * Selects a move using policy logits and Lc0 indexing.
+ * Adds a small difficulty-based randomness over top-3.
  */
 function selectBestLegalMove(
   legalMoves: Move[],
-  probabilities: number[],
+  logits: Float32Array,
   game: Chess,
   difficulty: MaiaDifficulty,
-): Move {
-  // Score each legal move based on model probability using proper Lc0 encoding
-  const moveScores = legalMoves.map((move) => {
-    const moveIdx = getMoveIndexLc0(move, game);
-    const score = moveIdx < probabilities.length ? probabilities[moveIdx] : 0;
-    return { move, score };
+): Move | null {
+  if (legalMoves.length === 0) return null;
+
+  const scored = legalMoves.map((mv) => {
+    const idx = getMoveIndexLc0(mv, game);
+    const score = idx >= 0 && idx < logits.length ? logits[idx] : Number.NEGATIVE_INFINITY;
+    return { mv, score };
   });
 
-  // Sort by ONNX probability (highest first)
-  moveScores.sort((a, b) => b.score - a.score);
+  scored.sort((a, b) => b.score - a.score);
   
   // Log top 3 moves for debugging
-  console.log('Top moves:', moveScores.slice(0, 3).map(m => ({
-    move: `${m.move.from}-${m.move.to}`,
+  console.log('Top moves:', scored.slice(0, 3).map(m => ({
+    move: `${m.mv.from}-${m.mv.to}`,
     score: m.score.toFixed(4)
   })));
 
-  // Add slight randomness based on difficulty to simulate human-like play
-  const randomThreshold = difficulty === 'maia1' ? 0.15 : difficulty === 'maia5' ? 0.08 : 0.03;
-  const randomFactor = Math.random();
-  
-  if (randomFactor < randomThreshold && moveScores.length >= 3) {
-    // Pick from top 3 moves for variety
-    const topMoves = moveScores.slice(0, 3);
-    return topMoves[Math.floor(Math.random() * topMoves.length)].move;
+  // Small randomness to keep human-like variety
+  const epsilon = difficulty === 'maia1' ? 0.15 : difficulty === 'maia5' ? 0.08 : 0.03;
+  if (Math.random() < epsilon && scored.length >= 3) {
+    const top3 = scored.slice(0, 3);
+    return top3[Math.floor(Math.random() * top3.length)].mv;
   }
 
-  // Return the move with highest ONNX probability
-  return moveScores[0].move;
+  return scored[0].mv;
 }

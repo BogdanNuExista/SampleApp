@@ -19,13 +19,15 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
   const [selectedMinutes, setSelectedMinutes] = useState<number>(25);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(selectedMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey>('running');
+  const [activeAnimation, setActiveAnimation] = useState<SkeletonAnimationKey>(() => 
+    pickRandomSkeletonAnimation()
+  );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setRemainingSeconds(selectedMinutes * 60);
-  setIsRunning(false);
-  setActiveAnimation('running');
+    setIsRunning(false);
+    setActiveAnimation(pickRandomSkeletonAnimation());
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -84,8 +86,9 @@ export function FocusTimer({ onSessionComplete, isDarkMode }: FocusTimerProps) {
         return false;
       }
 
-      // Starting or resuming - show running animation
-      setActiveAnimation('running');
+      // Starting or resuming - pick a random animation
+      const randomAnim = pickRandomSkeletonAnimation();
+      setActiveAnimation(randomAnim);
       return true;
     });
   };
