@@ -20,35 +20,35 @@ import {
   MaiaChessUnlockState,
   useGame,
 } from '../context/GameContext';
-import { useMaiaChessEngine, MaiaDifficulty } from '../hooks/useMaiaChessEngine';
+import { useMaiaChessEngine, MaiaDifficulty, MaiaElo } from '../hooks/useMaiaChessEngine';
 
 const rankLabels = [8, 7, 6, 5, 4, 3, 2, 1];
 const fileLetters = fileLabels.split('');
 
 const difficultyMeta: Record<
   MaiaChessDifficulty,
-  { label: string; blurb: string; elo: number; model: MaiaDifficulty; cost: number }
+  { label: string; blurb: string; elo: MaiaElo; model: MaiaDifficulty; cost: number }
 > = {
   apprentice: {
-    label: 'Apprentice',
-    blurb: 'Maia plays like a 1100 Elo player. Perfect for learning.',
+    label: 'Easy (~1100 Elo)',
+    blurb: 'Maia plays at beginner level. Perfect for learning chess fundamentals.',
     elo: 1100,
-    model: 'maia1',
-    cost: 1,
+    model: 'rapid',
+    cost: 0, // Free to play
   },
   adept: {
-    label: 'Adept',
-    blurb: 'Maia plays like a 1500 Elo player. Intermediate challenge.',
-    elo: 1500,
-    model: 'maia5',
-    cost: 5,
+    label: 'Medium (~1300 Elo)',
+    blurb: 'Maia plays at intermediate level. A solid challenge for improving players.',
+    elo: 1300,
+    model: 'rapid',
+    cost: 50, // Unlock cost
   },
   master: {
-    label: 'Master',
-    blurb: 'Maia plays like a 1900 Elo player. Advanced tactics.',
-    elo: 1900,
-    model: 'maia9',
-    cost: 9,
+    label: 'Hard (~1500 Elo)',
+    blurb: 'Maia plays at advanced level. Test your skills against stronger moves.',
+    elo: 1500,
+    model: 'rapid',
+    cost: 100, // Unlock cost
   },
 };
 
@@ -69,7 +69,11 @@ export function MaiaChessArena() {
     unlockMaiaDifficulty,
   } = useGame();
 
-  const { getMaiaMove, isModelsReady, isModelsLoading, modelsError } = useMaiaChessEngine();
+  const [difficulty, setDifficulty] = useState<MaiaChessDifficulty>('apprentice');
+  
+  // Get Elo based on selected difficulty
+  const maiaElo = difficultyMeta[difficulty].elo;
+  const { getMaiaMove, isModelsReady, isModelsLoading, modelsError } = useMaiaChessEngine(maiaElo, 1600);
 
   const chessRef = useRef(new Chess());
   const aiMoveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,7 +83,6 @@ export function MaiaChessArena() {
     return board.map(rank => rank.slice());
   };
 
-  const [difficulty, setDifficulty] = useState<MaiaChessDifficulty>('apprentice');
   const [boardState, setBoardState] = useState<(Piece | null)[][]>(() =>
     snapshotBoard(chessRef.current),
   );
@@ -224,8 +227,7 @@ export function MaiaChessArena() {
     aiMoveTimeout.current = setTimeout(async () => {
       const game = chessRef.current;
       try {
-        const model = difficultyMeta[difficulty].model;
-        const move = await getMaiaMove(game, model);
+        const move = await getMaiaMove(game);
         if (move) {
           game.move(move);
         }
