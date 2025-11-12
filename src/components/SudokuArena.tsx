@@ -179,6 +179,9 @@ export const SudokuArena: React.FC = () => {
     newBoard[row][col] = num;
     setBoard(newBoard);
 
+    // Highlight the number that was just placed
+    setHighlightedNumber(num);
+
     const cellKey = `${row}-${col}`;
     
     // Check if correct
@@ -241,6 +244,19 @@ export const SudokuArena: React.FC = () => {
         [{ text: 'Play Again', onPress: () => startGame(difficulty) }]
       );
     }
+  };
+
+  // Count how many times each number appears on the board
+  const getNumberCount = (num: number): number => {
+    let count = 0;
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        if (board[i][j] === num) {
+          count++;
+        }
+      }
+    }
+    return count;
   };
 
   const handleUnlock = (difficulty: SudokuDifficulty) => {
@@ -432,23 +448,32 @@ export const SudokuArena: React.FC = () => {
 
       <View style={styles.controlsContainer}>
         <View style={styles.numbersContainer}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-            <TouchableOpacity
-              key={num}
-              style={[
-                styles.numberButton,
-                highlightedNumber === num && styles.numberButtonHighlighted
-              ]}
-              onPress={() => handleNumberPress(num)}
-            >
-              <Text style={[
-                styles.numberButtonText,
-                highlightedNumber === num && styles.numberButtonTextHighlighted
-              ]}>
-                {num}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9]
+            .filter(num => getNumberCount(num) < 9) // Hide numbers that are complete
+            .map(num => (
+              <TouchableOpacity
+                key={num}
+                style={[
+                  styles.numberButton,
+                  highlightedNumber === num && styles.numberButtonHighlighted
+                ]}
+                onPress={() => {
+                  setHighlightedNumber(num);
+                  handleNumberPress(num);
+                }}
+                onLongPress={() => {
+                  // Just highlight on long press without placing
+                  setHighlightedNumber(num);
+                }}
+              >
+                <Text style={[
+                  styles.numberButtonText,
+                  highlightedNumber === num && styles.numberButtonTextHighlighted
+                ]}>
+                  {num}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </View>
         <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
           <Text style={styles.clearButtonText}>Clear</Text>
