@@ -13,6 +13,7 @@ import {
 import { pieceImages, ChessPieceKey, fileLabels } from '../constants/chessAssets';
 import { InventoryCatalogItem } from '../constants/inventoryCatalog';
 import { palette } from '../theme/colors';
+import { getFixedOpeningMove, FixedOpening } from '../constants/chessOpenings';
 import {
   MaiaChessDifficulty,
   MaiaChessMatchRequest,
@@ -96,6 +97,8 @@ export function MaiaChessArena() {
   const [result, setResult] = useState<ResultModalState | null>(null);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockTarget, setUnlockTarget] = useState<MaiaChessDifficulty | null>(null);
+  const [moveHistory, setMoveHistory] = useState<string[]>([]); // Track UCI move history for opening book
+  const [selectedOpening, setSelectedOpening] = useState<FixedOpening | null>(null); // AI's chosen opening for this game
 
   console.log('MaiaChessArena render - result state:', result);
 
@@ -131,6 +134,8 @@ export function MaiaChessArena() {
     setIsThinking(false);
     setIsGameActive(true);
     setResult(null);
+    setMoveHistory([]); // Reset move history for opening book
+    setSelectedOpening(null); // Reset selected opening (will be chosen on first AI move)
 
     if (unlocked[nextDifficulty]) {
       setStatusLabel(
@@ -205,18 +210,23 @@ export function MaiaChessArena() {
         promotion: 'q',
       });
       if (move) {
+        // Track move history in UCI format for opening book
+        const uciMove = `${move.from}${move.to}${move.promotion || ''}`;
+        const newHistory = [...moveHistory, uciMove];
+        setMoveHistory(newHistory);
+        
         setBoardState(snapshotBoard(game));
         setSelectedSquare(null);
         setLegalTargets([]);
         const finished = evaluateGameState('player');
         if (!finished) {
-          triggerMaiaMove();
+          triggerMaiaMove(newHistory); // Pass updated history
         }
       }
     }
   };
 
-  const triggerMaiaMove = () => {
+  const triggerMaiaMove = (currentHistory: string[] = moveHistory) => {
     if (aiMoveTimeout.current) {
       clearTimeout(aiMoveTimeout.current);
     }
@@ -227,16 +237,45 @@ export function MaiaChessArena() {
     aiMoveTimeout.current = setTimeout(async () => {
       const game = chessRef.current;
       try {
-        const move = await getMaiaMove(game);
-        if (move) {
-          game.move(move);
+        // First, try to use fixed opening book for first 2 moves (regardless of opponent's moves)
+        const { move: openingMove, opening: newOpening } = getFixedOpeningMove(currentHistory, selectedOpening);
+        
+        if (openingMove) {
+          console.log('[Maia] Using fixed opening move:', openingMove);
+          
+          // Update selected opening if this is the first move
+          if (newOpening && !selectedOpening) {
+            setSelectedOpening(newOpening);
+          }
+          
+          const move = game.move(openingMove);
+          if (move) {
+            // Track AI move in history
+            const uciMove = `${move.from}${move.to}${move.promotion || ''}`;
+            setMoveHistory(prev => [...prev, uciMove]);
+          }
+        } else {
+          // Use Maia neural network for move selection
+          const move = await getMaiaMove(game);
+          if (move) {
+            const madeMove = game.move(move);
+            if (madeMove) {
+              // Track AI move in history
+              const uciMove = `${madeMove.from}${madeMove.to}${madeMove.promotion || ''}`;
+              setMoveHistory(prev => [...prev, uciMove]);
+            }
+          }
         }
       } catch (error) {
         console.warn('Maia move error', error);
         // Fallback to random move
         const moves = game.moves({ verbose: true }) as Move[];
         if (moves.length > 0) {
-          game.move(moves[Math.floor(Math.random() * moves.length)]);
+          const move = game.move(moves[Math.floor(Math.random() * moves.length)]);
+          if (move) {
+            const uciMove = `${move.from}${move.to}${move.promotion || ''}`;
+            setMoveHistory(prev => [...prev, uciMove]);
+          }
         }
       }
       setBoardState(snapshotBoard(game));
