@@ -5,7 +5,7 @@ import { ACHIEVEMENTS, AchievementId } from '../types/achievements';
 import { palette } from '../theme/colors';
 
 export function AchievementsScreen() {
-  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned } } = useGame();
+  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory } } = useGame();
 
   const achievementsList = useMemo(() => {
     return Object.values(ACHIEVEMENTS).map(achievement => {
@@ -57,12 +57,6 @@ export function AchievementsScreen() {
         case 'sudoku-expert':
           progress = sudoku.totalWins;
           break;
-        case 'sudoku-speed-demon':
-          progress = Math.min(
-            sudoku.stats.medium.bestTime ?? 999,
-            sudoku.stats.expert.bestTime ?? 999
-          );
-          break;
         case 'puzzle-master':
           progress = sudoku.totalWins;
           break;
@@ -100,6 +94,15 @@ export function AchievementsScreen() {
           // Show combined progress: 1 when both requirements met
           progress = (arcadeHighScores.lanes >= 400 && arcadeHighScores.reaction >= 900) ? 1 : 0;
           break;
+        case 'treasure-hunter':
+          progress = inventory.filter(item => item.type === 'loot').length;
+          break;
+        case 'arsenal-master':
+          progress = inventory.filter(item => item.type === 'sword').length;
+          break;
+        case 'completionist':
+          progress = inventory.length;
+          break;
       }
 
       return {
@@ -114,7 +117,7 @@ export function AchievementsScreen() {
       }
       return 0;
     });
-  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned]);
+  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory]);
 
   const unlockedCount = achievements.length;
   const totalCount = Object.keys(ACHIEVEMENTS).length;

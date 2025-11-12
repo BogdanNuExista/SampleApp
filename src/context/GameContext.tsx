@@ -793,11 +793,6 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           case 'sudoku-expert':
             shouldUnlock = state.sudoku.totalWins >= 10;
             break;
-          case 'sudoku-speed-demon':
-            shouldUnlock = 
-              (state.sudoku.stats.medium.bestTime !== null && state.sudoku.stats.medium.bestTime <= 300) ||
-              (state.sudoku.stats.expert.bestTime !== null && state.sudoku.stats.expert.bestTime <= 300);
-            break;
           case 'puzzle-master':
             shouldUnlock = state.sudoku.totalWins >= 25;
             break;
@@ -834,6 +829,15 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           case 'arcade-champion':
             shouldUnlock = state.arcadeHighScores.lanes >= 400 && state.arcadeHighScores.reaction >= 900;
             break;
+          case 'treasure-hunter':
+            shouldUnlock = state.inventory.filter(item => item.type === 'loot').length >= 10;
+            break;
+          case 'arsenal-master':
+            shouldUnlock = state.inventory.filter(item => item.type === 'sword').length >= 15;
+            break;
+          case 'completionist':
+            shouldUnlock = state.inventory.length >= 78;
+            break;
         }
 
         if (shouldUnlock) {
@@ -856,14 +860,13 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     state.maiaChess.stats.adept.wins,
     state.maiaChess.stats.master.wins,
     state.sudoku.totalWins,
-    state.sudoku.stats.medium.bestTime,
-    state.sudoku.stats.expert.bestTime,
     state.arcadeHighScores.lanes,
     state.arcadeHighScores.reaction,
     state.flashcards.length,
     state.streak,
     state.totalCoinsEarned,
     state.achievements.length,
+    state.inventory, // Changed to entire array to detect type changes
   ]);
 
   const value = useMemo<GameContextValue>(() => {

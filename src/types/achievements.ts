@@ -13,7 +13,6 @@ export type AchievementId =
   | 'sudoku-starter'
   | 'sudoku-novice'
   | 'sudoku-expert'
-  | 'sudoku-speed-demon'
   | 'puzzle-master'
   | 'journaler'
   | 'mood-explorer'
@@ -25,7 +24,10 @@ export type AchievementId =
   | 'reaction-novice'
   | 'reaction-expert'
   | 'reaction-legend'
-  | 'arcade-champion';
+  | 'arcade-champion'
+  | 'treasure-hunter'
+  | 'arsenal-master'
+  | 'completionist';
 
 export type Achievement = {
   id: AchievementId;
@@ -33,7 +35,7 @@ export type Achievement = {
   description: string;
   icon: string;
   requirement: number;
-  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade';
+  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade' | 'inventory';
 };
 
 export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
@@ -149,14 +151,6 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
     requirement: 10,
     category: 'sudoku',
   },
-  'sudoku-speed-demon': {
-    id: 'sudoku-speed-demon',
-    title: 'Speed Demon',
-    description: 'Complete a Sudoku in under 5 minutes',
-    icon: '⚡',
-    requirement: 5,
-    category: 'sudoku',
-  },
   'puzzle-master': {
     id: 'puzzle-master',
     title: 'Puzzle Master',
@@ -252,6 +246,30 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
     icon: '🏆',
     requirement: 1,
     category: 'arcade',
+  },
+  'treasure-hunter': {
+    id: 'treasure-hunter',
+    title: 'Treasure Hunter',
+    description: 'Collect 10 unique loot items',
+    icon: '💎',
+    requirement: 10,
+    category: 'inventory',
+  },
+  'arsenal-master': {
+    id: 'arsenal-master',
+    title: 'Arsenal Master',
+    description: 'Collect 15 unique swords',
+    icon: '⚔️',
+    requirement: 15,
+    category: 'inventory',
+  },
+  'completionist': {
+    id: 'completionist',
+    title: 'Completionist',
+    description: 'Collect all 78 unique items (48 loot + 30 swords)',
+    icon: '🌟',
+    requirement: 78,
+    category: 'inventory',
   },
 };
 
