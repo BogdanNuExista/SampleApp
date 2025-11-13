@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { JournalMood } from '../context/GameContext';
 import { RankedPrediction, useOnnxClassifier } from '../hooks/useOnnxClassifier';
 import { palette } from '../theme/colors';
@@ -80,6 +82,33 @@ export function FlashcardEditorModal({
     setMood(defaultMood);
   }, [defaultDescription, defaultImageBase64, defaultMood, defaultTitle, visible]);
 
+  const processImage = async (base64: string) => {
+    setImageBase64(base64);
+    setPredictions([]);
+    if (!isModelReady) {
+      if (!isModelLoading) {
+        setPredictionError('AI model is still warming up. Try again in a moment.');
+      }
+      return;
+    }
+
+    try {
+      setIsClassifying(true);
+      setPredictionError(null);
+      const ranked = await classifyImage(base64, 3);
+      setPredictions(ranked);
+      if (ranked.length > 0 && !hasEditedTitle) {
+        setTitle(ranked[0].label);
+      }
+    } catch (error) {
+      console.warn('Failed to classify image', error);
+      setPredictionError('Could not classify this image.');
+      setPredictions([]);
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
   const handlePickImage = async () => {
     const result = await launchImageLibrary(pickerOptions);
     if (result.didCancel || !result.assets?.length) {
@@ -87,30 +116,59 @@ export function FlashcardEditorModal({
     }
     const asset = result.assets[0];
     if (asset.base64) {
-      setImageBase64(asset.base64);
-      setPredictions([]);
-      if (!isModelReady) {
-        if (!isModelLoading) {
-          setPredictionError('AI model is still warming up. Try again in a moment.');
+      await processImage(asset.base64);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      // Always request camera permission on Android (asks every time if denied)
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'This app needs camera access to take photos for your journal.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          // Still try to launch - the library will handle permission errors
+          console.log('Camera permission not granted:', granted);
+        }
+      }
+      
+      const result = await launchCamera({
+        ...pickerOptions,
+        cameraType: 'back',
+        saveToPhotos: false,
+      });
+      
+      if (result.errorCode) {
+        if (result.errorCode === 'camera_unavailable') {
+          setPredictionError('Camera not available on this device.');
+        } else if (result.errorCode === 'permission') {
+          setPredictionError('Camera permission required. Please enable it in Settings.');
+        } else {
+          setPredictionError(`Camera error: ${result.errorMessage || result.errorCode}`);
         }
         return;
       }
-
-      try {
-        setIsClassifying(true);
-        setPredictionError(null);
-        const ranked = await classifyImage(asset.base64, 3);
-        setPredictions(ranked);
-        if (ranked.length > 0 && !hasEditedTitle) {
-          setTitle(ranked[0].label);
-        }
-      } catch (error) {
-        console.warn('Failed to classify image', error);
-        setPredictionError('Could not classify this image.');
-        setPredictions([]);
-      } finally {
-        setIsClassifying(false);
+      
+      if (result.didCancel || !result.assets?.length) {
+        return;
       }
+      
+      const asset = result.assets[0];
+      if (asset.base64) {
+        await processImage(asset.base64);
+      }
+    } catch (error) {
+      console.error('Camera launch failed:', error);
+      setPredictionError('Camera unavailable. Try using gallery instead.');
     }
   };
 
@@ -200,9 +258,16 @@ export function FlashcardEditorModal({
                 <Text style={styles.previewPlaceholderText}>No artwork yet</Text>
               </View>
             )}
-            <Pressable style={styles.pickButton} onPress={handlePickImage}>
-              <Text style={styles.pickButtonText}>Choose cover art</Text>
-            </Pressable>
+            
+            <View style={styles.imageButtonsRow}>
+              <Pressable style={styles.pickButton} onPress={handlePickImage}>
+                <Text style={styles.pickButtonText}>📁 Choose</Text>
+              </Pressable>
+              
+              <Pressable style={styles.cameraButton} onPress={handleTakePhoto}>
+                <Text style={styles.pickButtonText}>📷 Take Photo</Text>
+              </Pressable>
+            </View>
 
             <View style={styles.modelStatusBlock}>
               {isModelLoading ? (
@@ -390,12 +455,25 @@ const styles = StyleSheet.create({
   previewPlaceholderText: {
     color: palette.silver,
   },
+  imageButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   pickButton: {
-    alignSelf: 'flex-start',
+    flex: 1,
     backgroundColor: palette.neonBlue,
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 999,
+    alignItems: 'center',
+  },
+  cameraButton: {
+    flex: 1,
+    backgroundColor: palette.neonPink,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    alignItems: 'center',
   },
   pickButtonText: {
     color: palette.midnight,
