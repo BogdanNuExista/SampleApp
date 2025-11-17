@@ -7,6 +7,7 @@ import React, {
   useReducer,
   useState,
 } from 'react';
+import { Vibration } from 'react-native';
 import {
   InventoryCatalogItem,
   getInventoryItemById,
@@ -636,6 +637,10 @@ function reducer(state: GameState, action: Action): GameState {
       if (state.achievements.some(a => a.id === achievementId)) {
         return state;
       }
+      
+      // Vibrate on achievement unlock (success pattern)
+      Vibration.vibrate([0, 200, 100, 200]);
+      
       const newAchievement: UserAchievement = {
         id: achievementId,
         unlockedAt: Date.now(),
