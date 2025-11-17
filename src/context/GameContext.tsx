@@ -6,7 +6,9 @@ import React, {
   useMemo,
   useReducer,
   useState,
+  useRef,
 } from 'react';
+import { Vibration, Platform } from 'react-native';
 import {
   InventoryCatalogItem,
   getInventoryItemById,
@@ -699,6 +701,7 @@ const GameContext = createContext<GameContextValue | undefined>(undefined);
 export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isHydrated, setIsHydrated] = useState(false);
+  const previousAchievementCount = useRef(0);
 
   useEffect(() => {
     const loadState = async () => {
@@ -712,6 +715,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             inventory: [],
           };
           dispatch({ type: 'HYDRATE', payload: { ...baseline, ...parsed } });
+          // Set initial count to avoid vibration on app load
+          previousAchievementCount.current = (parsed.achievements || []).length;
         }
       } catch (error) {
         console.warn('Failed to load saved state', error);
@@ -722,6 +727,28 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
     loadState();
   }, []);
+  
+  // Vibrate when new achievement is unlocked
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+    
+    const currentCount = state.achievements.length;
+    if (currentCount > previousAchievementCount.current) {
+      // New achievement unlocked!
+      try {
+        if (Platform.OS === 'android' || Platform.OS === 'ios') {
+          // Success pattern: double buzz
+          Vibration.vibrate([0, 200, 100, 200]);
+        }
+      } catch (error) {
+        // Silently fail if vibration not supported
+        console.warn('Vibration failed:', error);
+      }
+    }
+    previousAchievementCount.current = currentCount;
+  }, [state.achievements.length, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated) {
