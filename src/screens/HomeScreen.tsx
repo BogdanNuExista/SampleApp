@@ -4,6 +4,7 @@ import { FocusTimer } from '../components/FocusTimer';
 import { StatBadge } from '../components/StatBadge';
 import { MusicControl } from '../components/MusicControl';
 import { useGame } from '../context/GameContext';
+import { useGeolocation } from '../hooks/useGeolocation';
 import { palette } from '../theme/colors';
 
 const icons = {
@@ -77,6 +78,13 @@ export function HomeScreen() {
     checkAndUnlockAchievements,
   } = useGame();
 
+  const { getCurrentLocation, requestLocationPermission, hasPermission } = useGeolocation();
+
+  // Request location permission on mount
+  React.useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
   const recentSessions = focusSessions.slice(0, 5);
 
   return (
@@ -118,8 +126,15 @@ export function HomeScreen() {
           <Text style={styles.sectionTitle}>Arcade Focus Run</Text>
           <FocusTimer
             isDarkMode
-            onSessionComplete={minutes => {
-              completeSession(minutes);
+            onSessionComplete={async (minutes) => {
+              let locationData = null;
+              
+              if (hasPermission) {
+                locationData = await getCurrentLocation();
+              }
+              
+              completeSession(minutes, locationData);
+              
               // Automatically check achievements after session
               setTimeout(() => {
                 const unlocked = checkAndUnlockAchievements();
@@ -153,6 +168,17 @@ export function HomeScreen() {
             <Text style={styles.historySubtitle}>
               {item.durationMinutes} minute sprint · +{item.coinsEarned} coins
             </Text>
+            {item.location && (
+              <Text style={styles.historyLocation}>
+                📍 {item.location.city && item.location.country 
+                  ? `${item.location.city}, ${item.location.country}`
+                  : item.location.city 
+                  ? item.location.city
+                  : item.location.country
+                  ? item.location.country
+                  : `Lat: ${item.location.latitude.toFixed(4)}, Lon: ${item.location.longitude.toFixed(4)}`}
+              </Text>
+            )}
           </View>
           <Text style={styles.historyStreak}>{item.streakAchieved}x streak</Text>
         </View>
@@ -240,6 +266,12 @@ const styles = StyleSheet.create({
   historySubtitle: {
     color: palette.silver,
     marginTop: 4,
+  },
+  historyLocation: {
+    color: palette.neonBlue,
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   historyStreak: {
     color: palette.neonPink,

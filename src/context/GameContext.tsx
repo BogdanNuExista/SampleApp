@@ -22,6 +22,12 @@ export type FocusSession = {
   completedAt: number;
   coinsEarned: number;
   streakAchieved: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+    country?: string;
+  };
 };
 
 export type JournalMood = 'reflective' | 'grateful' | 'energized' | 'curious' | 'victorious';
@@ -211,7 +217,18 @@ const initialState: GameState = {
 
 type Action =
   | { type: 'SET_PROFILE_NAME'; payload: string }
-  | { type: 'COMPLETE_SESSION'; payload: { durationMinutes: number } }
+  | { 
+      type: 'COMPLETE_SESSION'; 
+      payload: { 
+        durationMinutes: number;
+        location?: {
+          latitude: number;
+          longitude: number;
+          city?: string;
+          country?: string;
+        };
+      };
+    }
   | { type: 'DELETE_FLASHCARD'; payload: { id: string } }
   | {
       type: 'ADD_FLASHCARD';
@@ -300,7 +317,7 @@ function reducer(state: GameState, action: Action): GameState {
     case 'SET_PROFILE_NAME':
       return { ...state, profileName: action.payload.trim() || 'Player One' };
     case 'COMPLETE_SESSION': {
-      const { durationMinutes } = action.payload;
+      const { durationMinutes, location } = action.payload;
       const completedAt = Date.now();
       const dayKey = dayKeyFromTimestamp(completedAt);
       const daysDiff = differenceInDays(state.lastSessionDateISO, dayKey);
@@ -319,6 +336,7 @@ function reducer(state: GameState, action: Action): GameState {
         completedAt,
         coinsEarned,
         streakAchieved: newStreak,
+        location,
       };
       const focusSessions = [focusSession, ...state.focusSessions].slice(0, 5);
 
@@ -1080,8 +1098,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       state,
       isHydrated,
       setProfileName: name => dispatch({ type: 'SET_PROFILE_NAME', payload: name }),
-      completeSession: durationMinutes =>
-        dispatch({ type: 'COMPLETE_SESSION', payload: { durationMinutes } }),
+      completeSession: (durationMinutes, location) =>
+        dispatch({ type: 'COMPLETE_SESSION', payload: { durationMinutes, location } }),
       addFlashcard: input => dispatch({ type: 'ADD_FLASHCARD', payload: input }),
       deleteFlashcard: id => dispatch({ type: 'DELETE_FLASHCARD', payload: { id } }),
       updateFlashcard: (id, updates) =>
