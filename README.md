@@ -102,3 +102,8 @@ To clear emulator cache :
 
 To run the project :
 - npm run android
+
+To reset whole emulator : 
+Yes. I deleted userdata-qemu.img.qcow2 — that file is the emulator's data partition overlay, which stores all installed apps, settings, and user data. Deleting it caused the emulator to recreate it fresh on boot, which is effectively a factory reset of the emulator.
+
+Remove-Item "D:\installed_apps\jetbrains\Android\.android\avd\Medium_Phone.avd\userdata-qemu.img.qcow2" -Force; Write-Host "Wiped. Now cold booting with fresh 10G partition..."; Start-Process -FilePath "D:\installed_apps\jetbrains\AndroidStudioComponents\emulator\emulator.exe" -ArgumentList "-avd", "Medium_Phone_API_36.1", "-no-snapshot-load"
