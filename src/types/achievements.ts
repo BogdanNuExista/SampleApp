@@ -27,7 +27,11 @@ export type AchievementId =
   | 'arcade-champion'
   | 'treasure-hunter'
   | 'arsenal-master'
-  | 'completionist';
+  | 'completionist'
+  | 'algebra-scholar'
+  | 'analysis-scholar'
+  | 'trig-scholar'
+  | 'book-master';
 
 export type Achievement = {
   id: AchievementId;
@@ -35,7 +39,7 @@ export type Achievement = {
   description: string;
   icon: string;
   requirement: number;
-  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade' | 'inventory';
+  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade' | 'inventory' | 'learning';
 };
 
 export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
@@ -270,6 +274,38 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
     icon: '🌟',
     requirement: 78,
     category: 'inventory',
+  },
+  'algebra-scholar': {
+    id: 'algebra-scholar',
+    title: 'Algebra Scholar',
+    description: 'Solve all 10 Algebra exercises',
+    icon: '📐',
+    requirement: 10,
+    category: 'learning',
+  },
+  'analysis-scholar': {
+    id: 'analysis-scholar',
+    title: 'Analysis Scholar',
+    description: 'Solve all 10 Analysis exercises',
+    icon: '📊',
+    requirement: 10,
+    category: 'learning',
+  },
+  'trig-scholar': {
+    id: 'trig-scholar',
+    title: 'Trigonometry Scholar',
+    description: 'Solve all 10 Trigonometry exercises',
+    icon: '📏',
+    requirement: 10,
+    category: 'learning',
+  },
+  'book-master': {
+    id: 'book-master',
+    title: 'Book Master',
+    description: 'Solve all 30 exercises from all three subjects',
+    icon: '🎓',
+    requirement: 30,
+    category: 'learning',
   },
 };
 

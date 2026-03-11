@@ -9,32 +9,35 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useGame } from '../context/GameContext';
-import { RootTabParamList } from '../navigation/RootNavigator';
+import { RootTabParamList, RootStackParamList } from '../navigation/RootNavigator';
 import { palette } from '../theme/colors';
 
 const icons = {
   profile: require('../../assets/icon_pack/128/helmet.png'),
   history: require('../../assets/icon_pack/64/map.png'),
-  favorite: require('../../assets/icon_pack/64/heart.png'),
+  inventory: require('../../assets/icon_pack/128/backpack.png'),
   focus: require('../../assets/icon_pack/64/potionRed.png'),
   trophy: require('../../assets/icon_pack/128/shield.png'),
   stats: require('../../assets/icon_pack/64/scroll.png'),
 };
 
-type Navigation = BottomTabNavigationProp<RootTabParamList>;
+type Navigation = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 export function ProfileScreen() {
   const navigation = useNavigation<Navigation>();
   const {
-    state: { profileName, coins, streak, totalFocusMinutes, flashcards, focusSessions },
+    state: { profileName, coins, streak, totalFocusMinutes, focusSessions },
     setProfileName,
   } = useGame();
   const [nameInput, setNameInput] = useState(profileName);
 
-  const favoriteCount = flashcards.filter(card => card.favorite).length;
   const bestSessions = [...focusSessions]
     .sort((a, b) => b.durationMinutes - a.durationMinutes)
     .slice(0, 6);
@@ -111,19 +114,19 @@ export function ProfileScreen() {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Image source={icons.favorite} style={styles.cardIcon} />
+          <Image source={icons.inventory} style={styles.cardIcon} />
           <View>
-            <Text style={styles.cardTitle}>Flashcard Arsenal</Text>
+            <Text style={styles.cardTitle}>Inventory</Text>
             <Text style={styles.cardSubtitle}>
-              {favoriteCount} favorites · {flashcards.length} total cards
+              Your collected loot, swords and rewards
             </Text>
           </View>
         </View>
         <Pressable
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Flashcards' as never)}
+          onPress={() => navigation.navigate('Inventory')}
         >
-          <Text style={styles.primaryButtonText}>Review your codex</Text>
+          <Text style={styles.primaryButtonText}>Open inventory</Text>
         </Pressable>
       </View>
 
@@ -139,7 +142,7 @@ export function ProfileScreen() {
         </View>
         <Pressable
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Achievements' as never)}
+          onPress={() => navigation.navigate('Achievements')}
         >
           <Text style={styles.primaryButtonText}>View achievements</Text>
         </Pressable>
@@ -157,7 +160,7 @@ export function ProfileScreen() {
         </View>
         <Pressable
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Statistics' as never)}
+          onPress={() => navigation.navigate('Statistics')}
         >
           <Text style={styles.primaryButtonText}>View stats</Text>
         </Pressable>

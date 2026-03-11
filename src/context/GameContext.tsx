@@ -96,6 +96,13 @@ export type InventoryItem = InventoryCatalogItem & {
   obtainedAt: number;
 };
 
+export type LearningSubject = 'algebra' | 'analysis' | 'trigonometry';
+
+export type LearningProgress = {
+  unlockedSubjects: LearningSubject[];
+  solvedExercises: string[];
+};
+
 export type ChessMatchRequest = {
   difficulty: ChessDifficulty;
   outcome: 'win' | 'loss' | 'draw';
@@ -144,6 +151,7 @@ export type GameState = {
   achievements: UserAchievement[];
   musicEnabled: boolean;
   soundEffectsEnabled: boolean;
+  learning: LearningProgress;
 };
 
 const STORAGE_KEY = 'retro-arcade-study-state-v1';
@@ -213,6 +221,10 @@ const initialState: GameState = {
   achievements: [],
   musicEnabled: true,
   soundEffectsEnabled: true,
+  learning: {
+    unlockedSubjects: [],
+    solvedExercises: [],
+  },
 };
 
 type Action =
@@ -289,6 +301,8 @@ type Action =
   | { type: 'UNLOCK_ACHIEVEMENT'; payload: { achievementId: AchievementId } }
   | { type: 'TOGGLE_MUSIC'; payload?: { enabled: boolean } }
   | { type: 'TOGGLE_SOUND_EFFECTS'; payload?: { enabled: boolean } }
+  | { type: 'UNLOCK_SUBJECT'; payload: { subject: LearningSubject; cost: number } }
+  | { type: 'MARK_EXERCISE_SOLVED'; payload: { exerciseId: string } }
   | { type: 'HYDRATE'; payload: GameState };
 
 function generateId() {
@@ -649,6 +663,14 @@ function reducer(state: GameState, action: Action): GameState {
         },
         sudoku,
         inventory,
+        learning: {
+          unlockedSubjects: Array.isArray(persisted.learning?.unlockedSubjects)
+            ? persisted.learning.unlockedSubjects
+            : [],
+          solvedExercises: Array.isArray(persisted.learning?.solvedExercises)
+            ? persisted.learning.solvedExercises
+            : [],
+        },
       };
     }
     case 'UNLOCK_ACHIEVEMENT': {
@@ -676,6 +698,30 @@ function reducer(state: GameState, action: Action): GameState {
       return {
         ...state,
         soundEffectsEnabled: action.payload?.enabled ?? !state.soundEffectsEnabled,
+      };
+    }
+    case 'UNLOCK_SUBJECT': {
+      const { subject, cost } = action.payload;
+      if (state.learning.unlockedSubjects.includes(subject)) return state;
+      if (state.coins < cost) return state;
+      return {
+        ...state,
+        coins: state.coins - cost,
+        learning: {
+          ...state.learning,
+          unlockedSubjects: [...state.learning.unlockedSubjects, subject],
+        },
+      };
+    }
+    case 'MARK_EXERCISE_SOLVED': {
+      const { exerciseId } = action.payload;
+      if (state.learning.solvedExercises.includes(exerciseId)) return state;
+      return {
+        ...state,
+        learning: {
+          ...state.learning,
+          solvedExercises: [...state.learning.solvedExercises, exerciseId],
+        },
       };
     }
     default:
@@ -712,6 +758,8 @@ export type GameContextValue = {
   checkAndUnlockAchievements: () => AchievementId[];
   toggleMusic: (enabled?: boolean) => void;
   toggleSoundEffects: (enabled?: boolean) => void;
+  unlockSubject: (subject: LearningSubject, cost: number) => boolean;
+  markExerciseSolved: (exerciseId: string) => void;
 };
 
 const GameContext = createContext<GameContextValue | undefined>(undefined);
@@ -883,6 +931,18 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           case 'completionist':
             shouldUnlock = state.inventory.length >= 78;
             break;
+          case 'algebra-scholar':
+            shouldUnlock = state.learning.solvedExercises.filter(id => id.startsWith('AL')).length >= 10;
+            break;
+          case 'analysis-scholar':
+            shouldUnlock = state.learning.solvedExercises.filter(id => id.startsWith('AM')).length >= 10;
+            break;
+          case 'trig-scholar':
+            shouldUnlock = state.learning.solvedExercises.filter(id => id.startsWith('TG')).length >= 10;
+            break;
+          case 'book-master':
+            shouldUnlock = state.learning.solvedExercises.length >= 30;
+            break;
         }
 
         if (shouldUnlock) {
@@ -912,6 +972,7 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     state.totalCoinsEarned,
     state.achievements.length,
     state.inventory, // Changed to entire array to detect type changes
+    state.learning.solvedExercises.length,
   ]);
 
   const value = useMemo<GameContextValue>(() => {
@@ -1122,6 +1183,14 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         dispatch({ type: 'TOGGLE_MUSIC', payload: enabled !== undefined ? { enabled } : undefined }),
       toggleSoundEffects: (enabled?: boolean) =>
         dispatch({ type: 'TOGGLE_SOUND_EFFECTS', payload: enabled !== undefined ? { enabled } : undefined }),
+      unlockSubject: (subject: LearningSubject, cost: number): boolean => {
+        if (state.learning.unlockedSubjects.includes(subject)) return true;
+        if (state.coins < cost) return false;
+        dispatch({ type: 'UNLOCK_SUBJECT', payload: { subject, cost } });
+        return true;
+      },
+      markExerciseSolved: (exerciseId: string) =>
+        dispatch({ type: 'MARK_EXERCISE_SOLVED', payload: { exerciseId } }),
     };
   }, [state, isHydrated]);
 

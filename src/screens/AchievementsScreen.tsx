@@ -5,7 +5,7 @@ import { ACHIEVEMENTS, AchievementId } from '../types/achievements';
 import { palette } from '../theme/colors';
 
 export function AchievementsScreen() {
-  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory } } = useGame();
+  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory, learning } } = useGame();
 
   const achievementsList = useMemo(() => {
     return Object.values(ACHIEVEMENTS).map(achievement => {
@@ -103,6 +103,18 @@ export function AchievementsScreen() {
         case 'completionist':
           progress = inventory.length;
           break;
+        case 'algebra-scholar':
+          progress = learning.solvedExercises.filter(id => id.startsWith('AL')).length;
+          break;
+        case 'analysis-scholar':
+          progress = learning.solvedExercises.filter(id => id.startsWith('AM')).length;
+          break;
+        case 'trig-scholar':
+          progress = learning.solvedExercises.filter(id => id.startsWith('TG')).length;
+          break;
+        case 'book-master':
+          progress = learning.solvedExercises.length;
+          break;
       }
 
       return {
@@ -117,7 +129,7 @@ export function AchievementsScreen() {
       }
       return 0;
     });
-  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory]);
+  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory, learning]);
 
   const unlockedCount = achievements.length;
   const totalCount = Object.keys(ACHIEVEMENTS).length;

@@ -10,12 +10,16 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { InventoryScreen } from '../screens/InventoryScreen';
 import { AchievementsScreen } from '../screens/AchievementsScreen';
 import { StatisticsScreen } from '../screens/StatisticsScreen';
+import { LearningHubScreen } from '../screens/LearningHubScreen';
+import { ExerciseListScreen } from '../screens/ExerciseListScreen';
+import { ExerciseDetailScreen } from '../screens/ExerciseDetailScreen';
+import { LearningSubject } from '../context/GameContext';
 import { palette } from '../theme/colors';
 
 export type RootTabParamList = {
   Home: undefined;
   Arcade: undefined;
-  Inventory: undefined;
+  Learning: undefined;
   Flashcards: undefined;
   Profile: undefined;
 };
@@ -24,6 +28,9 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Achievements: undefined;
   Statistics: undefined;
+  Inventory: undefined;
+  ExerciseList: { subject: LearningSubject };
+  ExerciseDetail: { subject: LearningSubject; exerciseId: string };
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -36,7 +43,7 @@ type TabIconConfig = {
 const tabIcons: Record<keyof RootTabParamList, TabIconConfig> = {
   Home: { icon: '🎯' },
   Arcade: { icon: '🕹️' },
-  Inventory: { icon: require('../../assets/icon_pack/128/backpack.png') },
+  Learning: { icon: '📚' },
   Flashcards: { icon: '📓' },
   Profile: { icon: '👤' },
 };
@@ -89,9 +96,9 @@ function TabNavigator() {
         <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Focus' }} />
         <Tab.Screen name="Arcade" component={ArcadeScreen} options={{ title: 'Arcade' }} />
         <Tab.Screen
-          name="Inventory"
-          component={InventoryScreen}
-          options={{ title: 'Inventory' }}
+          name="Learning"
+          component={LearningHubScreen}
+          options={{ title: 'Learn', headerShown: true, headerStyle: { backgroundColor: '#0f172a' }, headerTintColor: palette.neonYellow }}
         />
         <Tab.Screen
           name="Flashcards"
@@ -127,6 +134,36 @@ export function RootNavigator() {
             headerStyle: { backgroundColor: '#0f172a' },
             headerTintColor: palette.neonYellow,
           }} 
+        />
+        <Stack.Screen
+          name="Inventory"
+          component={InventoryScreen}
+          options={{
+            headerShown: true,
+            title: 'Inventory',
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          }}
+        />
+        <Stack.Screen
+          name="ExerciseList"
+          component={ExerciseListScreen}
+          options={({ route }) => ({
+            headerShown: true,
+            title: route.params.subject.charAt(0).toUpperCase() + route.params.subject.slice(1),
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          })}
+        />
+        <Stack.Screen
+          name="ExerciseDetail"
+          component={ExerciseDetailScreen}
+          options={({ route }) => ({
+            headerShown: true,
+            title: `Exercise ${route.params.exerciseId}`,
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          })}
         />
       </Stack.Navigator>
     </NavigationContainer>
