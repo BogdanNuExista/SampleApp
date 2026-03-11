@@ -1,3 +1,8 @@
+import {
+  SUBJECT_EXERCISE_COUNTS,
+  TOTAL_LEARNING_EXERCISES,
+} from '../constants/learningContent';
+
 export type AchievementId =
   | 'first-session'
   | 'night-owl'
@@ -278,33 +283,33 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
   'algebra-scholar': {
     id: 'algebra-scholar',
     title: 'Algebra Scholar',
-    description: 'Solve all 10 Algebra exercises',
+    description: `Solve all ${SUBJECT_EXERCISE_COUNTS.algebra} Algebra exercises`,
     icon: '📐',
-    requirement: 10,
+    requirement: SUBJECT_EXERCISE_COUNTS.algebra,
     category: 'learning',
   },
   'analysis-scholar': {
     id: 'analysis-scholar',
     title: 'Analysis Scholar',
-    description: 'Solve all 10 Analysis exercises',
+    description: `Solve all ${SUBJECT_EXERCISE_COUNTS.analysis} Analysis exercises`,
     icon: '📊',
-    requirement: 10,
+    requirement: SUBJECT_EXERCISE_COUNTS.analysis,
     category: 'learning',
   },
   'trig-scholar': {
     id: 'trig-scholar',
     title: 'Trigonometry Scholar',
-    description: 'Solve all 10 Trigonometry exercises',
+    description: `Solve all ${SUBJECT_EXERCISE_COUNTS.trigonometry} Trigonometry exercises`,
     icon: '📏',
-    requirement: 10,
+    requirement: SUBJECT_EXERCISE_COUNTS.trigonometry,
     category: 'learning',
   },
   'book-master': {
     id: 'book-master',
     title: 'Book Master',
-    description: 'Solve all 30 exercises from all three subjects',
+    description: `Solve all ${TOTAL_LEARNING_EXERCISES} exercises from all three subjects`,
     icon: '🎓',
-    requirement: 30,
+    requirement: TOTAL_LEARNING_EXERCISES,
     category: 'learning',
   },
 };

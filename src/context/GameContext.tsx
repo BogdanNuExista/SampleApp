@@ -14,6 +14,10 @@ import {
   getInventoryItemById,
   pickRandomInventoryItem,
 } from '../constants/inventoryCatalog';
+import {
+  SUBJECT_EXERCISE_COUNTS,
+  TOTAL_LEARNING_EXERCISES,
+} from '../constants/learningContent';
 import { AchievementId, ACHIEVEMENTS, UserAchievement } from '../types/achievements';
 
 export type FocusSession = {
@@ -932,16 +936,22 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             shouldUnlock = state.inventory.length >= 78;
             break;
           case 'algebra-scholar':
-            shouldUnlock = state.learning.solvedExercises.filter(id => id.startsWith('AL')).length >= 10;
+            shouldUnlock =
+              state.learning.solvedExercises.filter(id => id.startsWith('AL')).length >=
+              SUBJECT_EXERCISE_COUNTS.algebra;
             break;
           case 'analysis-scholar':
-            shouldUnlock = state.learning.solvedExercises.filter(id => id.startsWith('AM')).length >= 10;
+            shouldUnlock =
+              state.learning.solvedExercises.filter(id => id.startsWith('AM')).length >=
+              SUBJECT_EXERCISE_COUNTS.analysis;
             break;
           case 'trig-scholar':
-            shouldUnlock = state.learning.solvedExercises.filter(id => id.startsWith('TG')).length >= 10;
+            shouldUnlock =
+              state.learning.solvedExercises.filter(id => id.startsWith('TG')).length >=
+              SUBJECT_EXERCISE_COUNTS.trigonometry;
             break;
           case 'book-master':
-            shouldUnlock = state.learning.solvedExercises.length >= 30;
+            shouldUnlock = state.learning.solvedExercises.length >= TOTAL_LEARNING_EXERCISES;
             break;
         }
 

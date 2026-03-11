@@ -10,6 +10,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useGame, LearningSubject } from '../context/GameContext';
+import {
+  LEARNING_SUBJECT_META,
+  SUBJECT_EXERCISE_COUNTS,
+  TOTAL_LEARNING_EXERCISES,
+} from '../constants/learningContent';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { palette } from '../theme/colors';
 
@@ -30,30 +35,18 @@ type SubjectConfig = {
 const SUBJECTS: SubjectConfig[] = [
   {
     id: 'algebra',
-    title: 'Algebra',
-    subtitle: 'Inequalities, absolute values, equations & number theory',
-    icon: '📐',
-    color: '#a855f7',
-    exercisePrefix: 'AL',
-    totalExercises: 10,
+    ...LEARNING_SUBJECT_META.algebra,
+    totalExercises: SUBJECT_EXERCISE_COUNTS.algebra,
   },
   {
     id: 'analysis',
-    title: 'Analysis',
-    subtitle: 'Limits, derivatives, continuity & asymptotes',
-    icon: '📊',
-    color: '#06b6d4',
-    exercisePrefix: 'AM',
-    totalExercises: 10,
+    ...LEARNING_SUBJECT_META.analysis,
+    totalExercises: SUBJECT_EXERCISE_COUNTS.analysis,
   },
   {
     id: 'trigonometry',
-    title: 'Trigonometry',
-    subtitle: 'Angles, identities, equations & functions',
-    icon: '📏',
-    color: '#f59e0b',
-    exercisePrefix: 'TG',
-    totalExercises: 10,
+    ...LEARNING_SUBJECT_META.trigonometry,
+    totalExercises: SUBJECT_EXERCISE_COUNTS.trigonometry,
   },
 ];
 
@@ -215,14 +208,14 @@ export function LearningHubScreen() {
       <View style={styles.totalCard}>
         <Text style={styles.totalTitle}>Overall Progress</Text>
         <Text style={styles.totalCount}>
-          {learning.solvedExercises.length} / 30 exercises solved
+          {learning.solvedExercises.length} / {TOTAL_LEARNING_EXERCISES} exercises solved
         </Text>
         <View style={styles.progressBarBg}>
           <View
             style={[
               styles.progressBarFill,
               {
-                width: `${(learning.solvedExercises.length / 30) * 100}%`,
+                width: `${(learning.solvedExercises.length / TOTAL_LEARNING_EXERCISES) * 100}%`,
                 backgroundColor: palette.neonYellow,
               },
             ]}

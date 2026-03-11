@@ -8,37 +8,15 @@ import {
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useGame, LearningSubject } from '../context/GameContext';
+import {
+  LEARNING_CONTENT,
+  LEARNING_SUBJECT_META,
+} from '../constants/learningContent';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { palette } from '../theme/colors';
 import { MathRenderer } from '../components/MathRenderer';
 
-import algebraData from '../../assets/learning/algebra.json';
-import analysisData from '../../assets/learning/analysis.json';
-import trigonometryData from '../../assets/learning/trigonometry.json';
-
 type RouteProps = RouteProp<RootStackParamList, 'ExerciseDetail'>;
-
-type ExerciseData = {
-  id: string;
-  problem: string;
-  answers: { id: string; text: string }[];
-  correctAnswer: string;
-  solution: string;
-};
-
-const DATA_MAP: Record<LearningSubject, { topic: string; exercises: ExerciseData[] }> = {
-  algebra: algebraData as any,
-  analysis: analysisData as any,
-  trigonometry: trigonometryData as any,
-};
-
-const SUBJECT_COLOR: Record<LearningSubject, string> = {
-  algebra: '#a855f7',
-  analysis: '#06b6d4',
-  trigonometry: '#f59e0b',
-};
-
-
 
 export function ExerciseDetailScreen() {
   const route = useRoute<RouteProps>();
@@ -48,8 +26,8 @@ export function ExerciseDetailScreen() {
     markExerciseSolved,
   } = useGame();
 
-  const data = DATA_MAP[subject];
-  const color = SUBJECT_COLOR[subject];
+  const data = LEARNING_CONTENT[subject];
+  const color = LEARNING_SUBJECT_META[subject].color;
   const exercise = data.exercises.find(ex => ex.id === exerciseId)!;
   const exerciseIndex = data.exercises.findIndex(ex => ex.id === exerciseId);
 
