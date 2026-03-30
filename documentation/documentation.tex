@@ -681,6 +681,47 @@ o estetică retro-neon RPG:
 \end{tabular}
 \end{table}
 
+\section{Inițializarea aplicației (\texttt{App.tsx})}
+
+Punctul de intrare al aplicației este \texttt{App.tsx}, care construiește ierarhia
+de provideri React și gestionează starea de hidrare:
+
+\begin{lstlisting}[language=Java, caption={Ierarhia de provideri în App.tsx}]
+export default function App() {
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <StatusBar barStyle="light-content" />
+        <GameProvider>
+          <AppShell />
+        </GameProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+\end{lstlisting}
+
+Fiecare container din ierarhie îndeplinește un rol distinct:
+\begin{itemize}
+  \item \texttt{GestureHandlerRootView} \textemdash{} necesar pentru
+    \texttt{react-native-gesture-handler}, care trebuie să fie primul element
+    din arborele de componente;
+  \item \texttt{SafeAreaProvider} \textemdash{} furnizează insets-urile pentru
+    zona sigură (notch, home indicator) tuturor ecranelor descendente;
+  \item \texttt{StatusBar barStyle="light-content"} \textemdash{} menține
+    textul barei de stare alb, compatibil cu fundalul întunecat al aplicației;
+  \item \texttt{GameProvider} \textemdash{} inițializează starea globală și
+    restaurează datele din AsyncStorage.
+\end{itemize}
+
+Componenta internă \texttt{AppShell} implementează o \textbf{gardă de hidrare}:
+atât timp cât \texttt{isHydrated = false} (GameProvider nu a terminat de restaurat
+starea din AsyncStorage), se afișează un spinner \texttt{ActivityIndicator} cu
+culoarea \texttt{neonPink} (\texttt{\#f472b6}). Abia după finalizarea hidrării
+este randat \texttt{RootNavigator}, prevenind orice stare incoherentă de UI în
+care componentele ar accesa câmpuri din \texttt{GameState} înainte de
+restaurarea lor completă.
+
 % ============================================================
 %  CAPITOLUL 5 – GESTIUNEA STĂRII ȘI PERSISTENȚA DATELOR
 % ============================================================
@@ -713,6 +754,12 @@ TypeScript \texttt{GameState}. Aceasta cuprinde toate datele necesare aplicație
 \texttt{achievements} & \texttt{UserAchievement[]} & Realizări deblocate \\
 \texttt{learning} & \texttt{LearningProgress} & Progres module de învățare \\
 \texttt{musicEnabled} & \texttt{boolean} & Starea muzicii de fundal \\
+\texttt{soundEffectsEnabled} & \texttt{boolean} & Starea efectelor sonore \\
+\texttt{totalCoinsEarned} & \texttt{number} & Total monede acumulate de la instalare \\
+\texttt{lastSessionDateISO} & \texttt{string?} & Data calendaristică a ultimei sesiuni (ISO) \\
+\texttt{arcadeHighScores} & \texttt{\{lanes, reaction: number\}} & Recorduri personale mini-jocuri \\
+\texttt{ownedSkins} & \texttt{string[]} & Skin-urile personajului deținute \\
+\texttt{activeSkin} & \texttt{string} & Skin-ul activ al personajului \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -823,7 +870,38 @@ callback-ul \texttt{onSessionComplete(durationMinutes)} care:
 \end{enumerate}
 
 Timer-ul este însoțit de o animație sprite de schelet RPG (\texttt{SkeletonSprite}) care
-afișează animații diferite în funcție de starea (running/paused/completed).
+afișează animații diferite în funcție de stare, controlate printr-o mașină de stare
+simplă: pornire/reluare = animație aleatorie, pauză/finalizare = animația \textit{slashing}.
+
+\subsection{Sistemul de animație sprite (\texttt{SkeletonSprite})}
+
+Componenta \texttt{SkeletonSprite} implementează un motor de animație frame-by-frame
+cu două optimizări tehnice vizibile în codul sursă:
+\begin{enumerate}
+  \item \textbf{Buclă de animație bazată pe \texttt{requestAnimationFrame}}
+    \textemdash{} în loc de \texttt{setInterval}, componenta folosește
+    \texttt{requestAnimationFrame} cu un acumulator de timp delta. Cadrul este
+    avansat numai după ce s-a scurs intervalul corect
+    ($\lfloor 1000/\text{fps} \rfloor$ ms), asigurând fluiditate independentă
+    de încărcarea thread-ului JavaScript;
+  \item \textbf{Preîncărcare asincronă a cadrelor} \textemdash{} la schimbarea
+    setului de cadre, toate imaginile sunt pre-fetch-uite cu \texttt{Image.prefetch()}
+    înainte de pornirea animației, eliminând flickering-ul la prima redare.
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Animațiile sprite ale personajului Skeleton Crusader}
+\label{tab:animations}
+\begin{tabular}{llll}
+\toprule
+\textbf{Cheie} & \textbf{Cadre} & \textbf{FPS} & \textbf{Declanșator} \\
+\midrule
+\texttt{running} & 8 & 12 & Pornire sau reluare a timer-ului \\
+\texttt{slashing} & 12 & 15 & Pauză sau finalizarea sesiunii \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Geolocalizarea sesiunilor}
 
@@ -855,24 +933,47 @@ Ecranul Arcade grupează cinci mini-jocuri accesibile prin card selector:
 \begin{enumerate}
   \item \textbf{Hyper Lane Defender} — mini-joc reflex;
   \item \textbf{Neon Reaction Pulse} — mini-joc timp de reacție;
-  \item \textbf{Cosmic Chess Gauntlet} — șah cu AI bazat pe Minimax;
+  \item \textbf{Cosmic Chess Gauntlet} — șah cu AI bazat pe evaluare de material;
   \item \textbf{Maia AI Chess Challenge} — șah cu modelul Maia ONNX;
   \item \textbf{Sudoku Challenge} — puzzle Sudoku.
 \end{enumerate}
 
 \subsection{Hyper Lane Defender}
 
-Un joc de tip \textit{lane-matching} în care utilizatorul trebuie să apese butonul
-corespunzător culoarului iluminat aleatoriu. Viteza de schimbare a culoarului activ
-crește progresiv (de la 1300ms la minim 600ms). Jucătorul are 3 vieți, iar la fiecare
-răspuns corect câștigă 8 puncte. La finalul jocului, scorul este comparat cu recordul
-personal și salvat dacă este mai mare.
+Un joc de tip \textit{lane-matching} cu trei culoare (Left, Center, Right) în care
+utilizatorul trebuie să apese butonul corespunzător culoarului iluminat. Mecanica
+de joc implementată în codul sursă:
+\begin{itemize}
+  \item \textbf{Viteză adaptivă} \textemdash{} intervalul de schimbare a culoarului
+    activ pornește la \textbf{1300 ms} și scade cu \textbf{20 ms} la fiecare
+    răspuns corect, până la minimul de \textbf{600 ms}, crescând continuu
+    dificultatea pe durata sesiunii;
+  \item \textbf{Punctaj} \textemdash{} fiecare apăsare corectă aduce \textbf{8 puncte};
+  \item \textbf{Vieți} \textemdash{} jucătorul are \textbf{3 vieți}; o apăsare
+    greșită scade o viață, iar la 0 vieți jocul se încheie automat cu
+    înregistrarea scorului;
+  \item \textbf{Bonus monede} \textemdash{} la înregistrarea scorului se acordă
+    $\lfloor \text{scor} / 15 \rfloor$ monede suplimentare, indiferent dacă este
+    sau nu un record personal.
+\end{itemize}
 
 \subsection{Neon Reaction Pulse}
 
-Un joc de timp de reacție în care utilizatorul trebuie să apese un buton exact când
-un indicator vizual flash-uiește. Se măsoară latența de reacție în milisecunde.
-Scorul este calculat invers proporțional cu timpul de reacție.
+Un joc de timp de reacție structurat în \textbf{5 runde} cu un maxim de
+\textbf{3 greșeli} (apăsări premature) permise. Fluxul unei runde:
+\begin{enumerate}
+  \item \textbf{Faza de armare (\textit{arming})} \textemdash{} după inițiere,
+    un temporizator cu durată aleatorie între \textbf{900 ms și 3100 ms}
+    (\texttt{900 + Math.random() * 2200}) precede flash-ul vizual; apăsarea în
+    această fereastră este penalizată ca \textit{too soon};
+  \item \textbf{Flash și răspuns} \textemdash{} când flash-ul apare, utilizatorul
+    trebuie să apese cât mai rapid; latența în milisecunde este înregistrată;
+  \item \textbf{Calculul scorului} \textemdash{} scorul per rundă este calculat
+    invers proporțional cu latența de reacție.
+\end{enumerate}
+Jocul se încheie fie după 5 runde de succes, fie la acumularea a 3 greșeli.
+Scorul final este convertit în monede ($\lfloor \text{scor} / 15 \rfloor$) care
+sunt adăugate automat la economia jucătorului.
 
 \subsection{Jocul de Sudoku (SudokuArena)}
 
@@ -1033,7 +1134,7 @@ maia-champion & AI Champion & Victorie vs Maia pe Hard \\
 sudoku-expert & Sudoku Expert & 10 victorii Sudoku totale \\
 book-master & Book Master & Toate exercițiile rezolvate \\
 streak-keeper & Streak Keeper & Streak de $\geq 7$ zile \\
-completionist & Completionist & 10 obiecte în inventar \\
+completionist & Completionist & 78 obiecte (48 loot + 30 săbii) \\
 journaler & Journaler & 30 de intrări în jurnal \\
 \bottomrule
 \end{tabular}
@@ -1322,6 +1423,14 @@ Master (Hard) & $\sim$1500 & 100 monede & 50 monede \\
 \end{tabular}
 \end{table}
 
+\textbf{Perspectiva jucătorului:} în implementare, jucătorul controlează întotdeauna
+piesele \textbf{albe}, iar Maia joacă piesele \textbf{negre}. ELO-ul jucătorului
+este setat la valoarea fixă de \textbf{1600} (\texttt{elo\_oppo = 1600}) în codul
+sursă, indiferent de nivelul real al utilizatorului. Acest parametru influențează
+distribuția de probabilitate a mutărilor modelului Maia: la un \texttt{elo\_oppo}
+ridicat, modelul va tinde să aleagă mutări mai solide, adaptându-și stilul ca și
+cum ar juca împotriva unui jucător de nivel intermediar-avansat.
+
 \subsection{Cartea de deschideri}
 
 Primele mutări ale AI-ului sunt extrase dintr-o carte de deschideri fixă definită
@@ -1418,12 +1527,30 @@ că dicționarul de mutări utilizat este cel corect din repository-ul oficial M
 \section{Comportamentul hook-ului de geolocalizare}
 
 Hook-ul \texttt{useGeolocation} (\texttt{src/hooks/useGeolocation.ts}) implementează
-un mecanism de rezervă explicit, vizibil în codul sursă: coordonatele GPS sunt
-obținute via \texttt{@react-native-community/geolocation}, după care se efectuează
-o cerere de reverse geocoding către API-ul Nominatim. Dacă această cerere eșuează,
-un bloc \texttt{catch} explicit salvează locația cu doar latitudinea și longitudinea,
-fără denumirea localității, asigurând că funcționalitatea de localizare nu se
-blocheaza în absența conectivității la internet.
+obținerea locației în mai mulți pași, cu un mecanism de rezervă explicit:
+
+\begin{enumerate}
+  \item \textbf{Solicitare permisiune} \textemdash{} pe Android se afișează un
+    dialog de sistem cu titlul \textit{``Location Permission''} care explică scopul
+    utilizării GPS-ului; pe iOS se apelează \texttt{Geolocation.requestAuthorization()};
+  \item \textbf{Obținere coordonate GPS} \textemdash{} se apelează
+    \texttt{Geolocation.getCurrentPosition()} cu parametrii:
+    \texttt{enableHighAccuracy: false}, \texttt{timeout: 15000 ms},
+    \texttt{maximumAge: 10000 ms};
+  \item \textbf{Reverse geocoding Nominatim} \textemdash{} coordonatele sunt
+    trimise la \texttt{nominatim.openstreetmap.org/reverse}; din câmpul
+    \texttt{address} al răspunsului JSON se extrage denumirea localității prin
+    ierarhia: \texttt{city} $\rightarrow$ \texttt{town} $\rightarrow$
+    \texttt{village} $\rightarrow$ \texttt{county};
+  \item \textbf{Rezervă la eșec} \textemdash{} un bloc \texttt{catch} explicit
+    salvează locația cu doar latitudinea și longitudinea, fără denumire,
+    asigurând că funcționalitatea nu se blochează în absența conectivității.
+\end{enumerate}
+
+Permisiunea \texttt{ACCESS\_FINE\_LOCATION} este solicitată la montarea ecranului
+principal (\texttt{HomeScreen}). Sesiunile afișează fie denumirea localității (dacă
+geocodarea a reușit), fie coordonatele numerice în formatul
+\texttt{Lat: X.XXXX, Lon: Y.YYYY}.
 
 \section{Mecanismul de persistență a datelor}
 
@@ -1830,17 +1957,17 @@ puzzle-master & Puzzle Master & sudoku & 25 puzzle-uri totale \\
 journaler & Journaler & journal & 30 de intrări în jurnal \\
 mood-explorer & Mood Explorer & journal & 5 stări emoționale distincte \\
 streak-keeper & Streak Keeper & focus & Streak $\geq 7$ zile \\
-coin-collector & Coin Collector & coins & 500 monede câștigate \\
+coin-collector & Coin Collector & coins & 1.000 monede câștigate \\
 lane-apprentice & Lane Apprentice & arcade & Scor Lanes $\geq 100$ \\
-lane-expert & Lane Expert & arcade & Scor Lanes $\geq 250$ \\
+lane-expert & Lane Expert & arcade & Scor Lanes $\geq 200$ \\
 lane-master & Lane Master & arcade & Scor Lanes $\geq 400$ \\
-reaction-novice & Reaction Novice & arcade & Scor Reaction $\geq 300$ \\
+reaction-novice & Reaction Novice & arcade & Scor Reaction $\geq 360$ \\
 reaction-expert & Reaction Expert & arcade & Scor Reaction $\geq 600$ \\
 reaction-legend & Reaction Legend & arcade & Scor Reaction $\geq 900$ \\
-arcade-champion & Arcade Champion & arcade & Ambele recorduri maximale \\
-treasure-hunter & Treasure Hunter & inventory & 5 obiecte Loot \\
-arsenal-master & Arsenal Master & inventory & 5 arme Sword \\
-completionist & Completionist & inventory & 10 obiecte totale \\
+arcade-champion & Arcade Champion & arcade & Lanes $\geq 400$ \textbf{și} Reaction $\geq 900$ \\
+treasure-hunter & Treasure Hunter & inventory & 10 obiecte Loot \\
+arsenal-master & Arsenal Master & inventory & 15 arme Sword \\
+completionist & Completionist & inventory & 78 obiecte totale (48 loot + 30 săbii) \\
 algebra-scholar & Algebra Scholar & learning & Toate exercițiile Algebră \\
 analysis-scholar & Analysis Scholar & learning & Toate exercițiile Analiză \\
 trig-scholar & Trig Scholar & learning & Toate exercițiile Trigonometrie \\
