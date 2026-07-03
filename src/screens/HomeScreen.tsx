@@ -3,6 +3,8 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { FocusTimer } from '../components/FocusTimer';
 import { StatBadge } from '../components/StatBadge';
 import { MusicControl } from '../components/MusicControl';
+import { LevelBar } from '../components/LevelBar';
+import { DailyQuests } from '../components/DailyQuests';
 import { useGame } from '../context/GameContext';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { palette } from '../theme/colors';
@@ -65,6 +67,8 @@ function formatBestSession(minutes: number) {
   return `${hours}h ${remainder}m`;
 }
 
+const HistorySeparator = () => <View style={styles.historySeparator} />;
+
 export function HomeScreen() {
   const {
     state: {
@@ -73,6 +77,7 @@ export function HomeScreen() {
       streak,
       bestSessionMinutes,
       focusSessions,
+      xp,
     },
     completeSession,
     checkAndUnlockAchievements,
@@ -120,6 +125,11 @@ export function HomeScreen() {
             />
           </View>
 
+          <LevelBar xp={xp} />
+
+          <Text style={styles.sectionTitle}>Daily Quests</Text>
+          <DailyQuests />
+
           <Text style={styles.sectionTitle}>Lo-fi Background Mix</Text>
           <MusicControl />
 
@@ -133,7 +143,7 @@ export function HomeScreen() {
                 locationData = await getCurrentLocation();
               }
               
-              completeSession(minutes, locationData);
+              completeSession(minutes, locationData ?? undefined);
               
               // Automatically check achievements after session
               setTimeout(() => {
@@ -154,7 +164,7 @@ export function HomeScreen() {
           </Text>
         </View>
       }
-      ItemSeparatorComponent={() => <View style={styles.historySeparator} />}
+      ItemSeparatorComponent={HistorySeparator}
       renderItem={({ item }) => (
         <View style={styles.historyCard}>
           <View>

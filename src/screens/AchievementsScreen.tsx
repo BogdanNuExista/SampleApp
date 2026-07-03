@@ -2,10 +2,11 @@ import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { ACHIEVEMENTS, AchievementId } from '../types/achievements';
+import { levelForXp } from '../constants/leveling';
 import { palette } from '../theme/colors';
 
 export function AchievementsScreen() {
-  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory, learning } } = useGame();
+  const { state: { achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory, learning, quizStats, puzzleStats, xp } } = useGame();
 
   const achievementsList = useMemo(() => {
     return Object.values(ACHIEVEMENTS).map(achievement => {
@@ -115,6 +116,22 @@ export function AchievementsScreen() {
         case 'book-master':
           progress = learning.solvedExercises.length;
           break;
+        case 'quiz-rookie':
+        case 'quiz-veteran':
+          progress = quizStats.taken;
+          break;
+        case 'quiz-ace':
+          progress = quizStats.bestScorePct;
+          break;
+        case 'tactician':
+        case 'mate-hunter':
+        case 'checkmate-virtuoso':
+          progress = puzzleStats.solved;
+          break;
+        case 'rising-star':
+        case 'seasoned-adventurer':
+          progress = levelForXp(xp);
+          break;
       }
 
       return {
@@ -129,7 +146,7 @@ export function AchievementsScreen() {
       }
       return 0;
     });
-  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory, learning]);
+  }, [achievements, focusSessions, chess, maiaChess, sudoku, arcadeHighScores, flashcards, streak, bestSessionMinutes, totalCoinsEarned, inventory, learning, quizStats, puzzleStats, xp]);
 
   const unlockedCount = achievements.length;
   const totalCount = Object.keys(ACHIEVEMENTS).length;

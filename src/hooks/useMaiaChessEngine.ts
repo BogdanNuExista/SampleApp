@@ -57,12 +57,7 @@ export function useMaiaChessEngine(eloSelf: MaiaElo = 1500, eloOppo: MaiaElo = 1
 
         if (isMounted) {
           setSession(loadedSession);
-          console.log(`✅ Maia Rapid model loaded successfully (Elo ${eloSelf} vs ${eloOppo})`);
-          
-          // Verify input/output names match expectations
-          console.log('Model inputs:', loadedSession.inputNames);
-          console.log('Model outputs:', loadedSession.outputNames);
-          
+
           // Check for correct input names
           const hasBoards = loadedSession.inputNames.some((n: string) => n === 'boards' || n.includes('planes'));
           const hasEloSelf = loadedSession.inputNames.some((n: string) => n.includes('elo_self'));
@@ -173,7 +168,6 @@ export function useMaiaChessEngine(eloSelf: MaiaElo = 1500, eloOppo: MaiaElo = 1
           console.warn(`⚠️ Expected 1880 policy logits, got ${policyLogits.length}`);
         }
 
-        console.log(`[Maia Rapid] Elo: ${eloSelf} vs ${eloOppo}, Legal moves: ${legalMoves.length}, Black to move: ${isBlack}`);
 
         // ⚠️ CRITICAL: Select best move using official all_moves.json mapping
         // Must mirror moves if black to move!
@@ -211,9 +205,7 @@ async function loadModelSource(uri: string): Promise<ModelSource> {
       const hasCopy = await RNFS.exists(cachedPath);
 
       if (!hasCopy) {
-        console.log(`Copying ${MODEL_FILENAME} from Android assets to cache...`);
         await RNFS.copyFileAssets(MODEL_ANDROID_ASSET_PATH, cachedPath);
-        console.log(`✅ Copied to: ${cachedPath}`);
       }
 
       return `file://${cachedPath}`;
@@ -540,14 +532,6 @@ function selectBestMove(
 
   // Sort by probability (highest first)
   movesWithProbs.sort((a, b) => b.prob - a.prob);
-
-  // Log top 3 for debugging
-  console.log('Top 3 moves:', movesWithProbs.slice(0, 3).map(m => ({
-    from: m.move.from,
-    to: m.move.to,
-    uci: m.uci,
-    prob: (m.prob * 100).toFixed(2) + '%',
-  })));
 
   // Return best move (highest probability)
   return movesWithProbs[0].move;

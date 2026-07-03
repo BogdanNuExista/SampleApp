@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
 import { NeonChessArena } from '../components/NeonChessArena';
 import { MaiaChessArena } from '../components/MaiaChessArena';
 import { SudokuArena } from '../components/SudokuArena';
+import { RootStackParamList } from '../navigation/RootNavigator';
 
 type Lane = 0 | 1 | 2;
 
@@ -59,6 +62,7 @@ export function ArcadeScreen() {
     state: { coins, arcadeHighScores },
     recordArcadeScore,
   } = useGame();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeGame, setActiveGame] = useState<ArcadeGameId>('lanes');
 
   return (
@@ -69,6 +73,15 @@ export function ArcadeScreen() {
           Earn coins by cycling between neon mini-games.
         </Text>
       </View>
+
+      <Pressable style={styles.puzzleEntry} onPress={() => navigation.navigate('Puzzles')}>
+        <Text style={styles.puzzleIcon}>♟️</Text>
+        <View style={styles.puzzleInfo}>
+          <Text style={styles.puzzleTitle}>Chess Puzzles</Text>
+          <Text style={styles.puzzleSubtitle}>Solve mate-in-1 tactics · earn coins & XP</Text>
+        </View>
+        <Text style={styles.puzzleChevron}>›</Text>
+      </Pressable>
 
       <View style={styles.gameSelector}>
         {arcadeGames.map(game => {
@@ -469,6 +482,21 @@ const styles = StyleSheet.create({
   headerBlock: {
     gap: 6,
   },
+  puzzleEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#1a1033',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: palette.electricPurple + '66',
+  },
+  puzzleIcon: { fontSize: 26 },
+  puzzleInfo: { flex: 1, gap: 3 },
+  puzzleTitle: { color: palette.electricPurple, fontSize: 16, fontWeight: '800' },
+  puzzleSubtitle: { color: '#9ca3af', fontSize: 12 },
+  puzzleChevron: { color: palette.electricPurple, fontSize: 26, fontWeight: '300' },
   panelTitle: {
     color: palette.neonYellow,
     fontSize: 20,

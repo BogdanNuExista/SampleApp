@@ -2,9 +2,49 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { palette } from '../theme/colors';
+import { LevelBar } from '../components/LevelBar';
+import {
+  SUBJECT_EXERCISE_COUNTS,
+  TOTAL_LEARNING_EXERCISES,
+} from '../constants/learningContent';
+
+type StatCardProps = {
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  icon: string;
+};
+
+function StatCard({ label, value, subtitle, icon }: StatCardProps) {
+  return (
+    <View style={styles.statCard}>
+      <Text style={styles.statIcon}>{icon}</Text>
+      <View style={styles.statContent}>
+        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={styles.statValue}>{value}</Text>
+        {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
+      </View>
+    </View>
+  );
+}
 
 export function StatisticsScreen() {
-  const { state: { focusSessions, chess, flashcards, totalFocusMinutes, totalCoinsEarned, bestSessionMinutes } } = useGame();
+  const {
+    state: {
+      focusSessions,
+      chess,
+      maiaChess,
+      sudoku,
+      flashcards,
+      totalFocusMinutes,
+      totalCoinsEarned,
+      bestSessionMinutes,
+      learning,
+      quizStats,
+      puzzleStats,
+      xp,
+    },
+  } = useGame();
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -21,6 +61,18 @@ export function StatisticsScreen() {
     
     const totalChessWins = chess.stats.easy.wins + chess.stats.normal.wins + chess.stats.hard.wins;
     const winRate = totalChessGames > 0 ? ((totalChessWins / totalChessGames) * 100).toFixed(1) : '0';
+
+    const maiaWins = maiaChess.stats.apprentice.wins + maiaChess.stats.adept.wins + maiaChess.stats.master.wins;
+    const maiaLosses = maiaChess.stats.apprentice.losses + maiaChess.stats.adept.losses + maiaChess.stats.master.losses;
+    const maiaTotal = maiaWins + maiaLosses;
+    const maiaWinRate = maiaTotal > 0 ? ((maiaWins / maiaTotal) * 100).toFixed(1) : '0';
+
+    const learnedAlgebra = learning.solvedExercises.filter(id => id.startsWith('AL')).length;
+    const learnedAnalysis = learning.solvedExercises.filter(id => id.startsWith('AM')).length;
+    const learnedTrig = learning.solvedExercises.filter(id => id.startsWith('TG')).length;
+    const quizAccuracy = quizStats.totalQuestions > 0
+      ? ((quizStats.totalCorrect / quizStats.totalQuestions) * 100).toFixed(1)
+      : '0';
 
     const moodCounts = flashcards.reduce((acc, card) => {
       if (card.mood) {
@@ -48,30 +100,32 @@ export function StatisticsScreen() {
       totalChessGames,
       totalChessWins,
       winRate,
+      maiaWins,
+      maiaLosses,
+      maiaTotal,
+      maiaWinRate,
+      learnedAlgebra,
+      learnedAnalysis,
+      learnedTrig,
+      quizAccuracy,
       mostUsedMood,
       mostProductiveHour,
-      avgSessionLength: focusSessions.length > 0 
+      avgSessionLength: focusSessions.length > 0
         ? Math.round(focusSessions.reduce((sum, s) => sum + s.durationMinutes, 0) / focusSessions.length)
         : 0,
     };
-  }, [focusSessions, chess, flashcards]);
-
-  const StatCard = ({ label, value, subtitle, icon }: { label: string; value: string | number; subtitle?: string; icon: string }) => (
-    <View style={styles.statCard}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <View style={styles.statContent}>
-        <Text style={styles.statLabel}>{label}</Text>
-        <Text style={styles.statValue}>{value}</Text>
-        {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
-      </View>
-    </View>
-  );
+  }, [focusSessions, chess, maiaChess, flashcards, learning, quizStats]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.title}>Statistics Dashboard</Text>
         <Text style={styles.subtitle}>Your arcade performance metrics</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>⭐ Level</Text>
+        <LevelBar xp={xp} />
       </View>
 
       <View style={styles.section}>
@@ -107,6 +161,86 @@ export function StatisticsScreen() {
           <View style={styles.chessRow}>
             <Text style={styles.chessLabel}>Hard:</Text>
             <Text style={styles.chessValue}>{chess.stats.hard.wins}W / {chess.stats.hard.losses}L</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🤖 Maia AI Chess</Text>
+        <View style={styles.grid}>
+          <StatCard label="Games" value={stats.maiaTotal} icon="🎲" />
+          <StatCard label="Wins" value={stats.maiaWins} icon="✨" />
+          <StatCard label="Win Rate" value={`${stats.maiaWinRate}%`} icon="📊" />
+        </View>
+        <View style={styles.chessBreakdown}>
+          <Text style={styles.breakdownTitle}>By Level</Text>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Apprentice (~1100):</Text>
+            <Text style={styles.chessValue}>{maiaChess.stats.apprentice.wins}W / {maiaChess.stats.apprentice.losses}L</Text>
+          </View>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Adept (~1300):</Text>
+            <Text style={styles.chessValue}>{maiaChess.stats.adept.wins}W / {maiaChess.stats.adept.losses}L</Text>
+          </View>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Master (~1500):</Text>
+            <Text style={styles.chessValue}>{maiaChess.stats.master.wins}W / {maiaChess.stats.master.losses}L</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🔢 Sudoku</Text>
+        <View style={styles.grid}>
+          <StatCard label="Played" value={sudoku.totalGames} icon="🎲" />
+          <StatCard label="Completed" value={sudoku.totalWins} icon="✅" />
+        </View>
+        <View style={styles.chessBreakdown}>
+          <Text style={styles.breakdownTitle}>By Difficulty (completed / played)</Text>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Easy:</Text>
+            <Text style={styles.chessValue}>{sudoku.stats.easy.completed} / {sudoku.stats.easy.played}</Text>
+          </View>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Medium:</Text>
+            <Text style={styles.chessValue}>{sudoku.stats.medium.completed} / {sudoku.stats.medium.played}</Text>
+          </View>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Expert:</Text>
+            <Text style={styles.chessValue}>{sudoku.stats.expert.completed} / {sudoku.stats.expert.played}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📚 Learning</Text>
+        <View style={styles.grid}>
+          <StatCard
+            label="Solved"
+            value={`${learning.solvedExercises.length} / ${TOTAL_LEARNING_EXERCISES}`}
+            icon="🧮"
+          />
+          <StatCard
+            label="Quiz Accuracy"
+            value={`${stats.quizAccuracy}%`}
+            subtitle={`${quizStats.taken} taken`}
+            icon="📝"
+          />
+          <StatCard label="Puzzles Solved" value={puzzleStats.solved} icon="♟️" />
+        </View>
+        <View style={styles.chessBreakdown}>
+          <Text style={styles.breakdownTitle}>Exercises by Subject</Text>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Algebra:</Text>
+            <Text style={styles.chessValue}>{stats.learnedAlgebra} / {SUBJECT_EXERCISE_COUNTS.algebra}</Text>
+          </View>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Analysis:</Text>
+            <Text style={styles.chessValue}>{stats.learnedAnalysis} / {SUBJECT_EXERCISE_COUNTS.analysis}</Text>
+          </View>
+          <View style={styles.chessRow}>
+            <Text style={styles.chessLabel}>Trigonometry:</Text>
+            <Text style={styles.chessValue}>{stats.learnedTrig} / {SUBJECT_EXERCISE_COUNTS.trigonometry}</Text>
           </View>
         </View>
       </View>

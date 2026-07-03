@@ -37,17 +37,22 @@
 \usepackage{microtype}
 \usepackage{tocloft}
 \usepackage{appendix}
+\usepackage{indentfirst}
+\usepackage{pdfpages}
 
 % ---------- geometrie pagină ----------
 \geometry{
   a4paper,
   top=2.5cm, bottom=2.5cm,
   left=3cm, right=2.5cm,
-  headheight=15pt
+  headheight=2.5cm
 }
 
 % ---------- spațiere ----------
-\onehalfspacing
+\setstretch{1.15}
+
+% ---------- cale imagini ----------
+\graphicspath{{images/}}
 
 % ---------- culori cod ----------
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -81,10 +86,27 @@
 % ---------- stil pagini ----------
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[LE,RO]{\thepage}
-\fancyhead[RE]{\nouppercase{\leftmark}}
-\fancyhead[LO]{\nouppercase{\rightmark}}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.\ #1}{}}
+\fancyhead[L]{\scriptsize\parbox[t]{0.65\headwidth}{%
+  Universitatea Politehnica Timișoara \\
+  Calculatoare și Tehnologia Informației, 2026 \\
+  Craiu Bogdan \\
+  Aplicație Mobilă RPG pentru Studiu, Concentrare și Jocuri Inteligente cu AI}}
+\fancyhead[R]{\raisebox{-1.0cm}{\includegraphics[height=1.6cm]{logo_UPT}}}
+\fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[L]{\scriptsize\parbox[t]{0.65\headwidth}{%
+    Universitatea Politehnica Timișoara \\
+    Calculatoare și Tehnologia Informației, 2026 \\
+    Craiu Bogdan \\
+    Aplicație Mobilă RPG pentru Studiu, Concentrare și Jocuri Inteligente cu AI}}
+  \fancyhead[R]{\raisebox{-1.0cm}{\includegraphics[height=1.6cm]{logo_UPT}}}
+  \fancyfoot[C]{\thepage}
+  \renewcommand{\headrulewidth}{0.4pt}
+}
 
 % ---------- hyperref ----------
 \hypersetup{
@@ -93,8 +115,19 @@
   citecolor=green!50!black,
   urlcolor=blue!70!black,
   pdfauthor={Craiu Bogdan},
-  pdftitle={Aplicație Mobilă RPG pentru Studiu și Focalizare},
+  pdftitle={Aplicație Mobilă RPG pentru Studiu și Concentrare},
 }
+
+% ---------- font ----------
+\renewcommand{\rmdefault}{phv}
+
+% ---------- localizare tabele ----------
+\AtBeginDocument{%
+  \renewcommand{\tablename}{Tabelul}
+}
+
+% ---------- numerotare ecuații ----------
+\numberwithin{equation}{section}
 
 % ---------- titluri capitole ----------
 \titleformat{\chapter}[display]
@@ -108,39 +141,38 @@
 %  PAGINA DE TITLU
 % ============================================================
 \begin{titlepage}
-\centering
-{\scshape\large Universitatea Politehnica Timișoara \par}
-{\scshape\large Facultatea de Automatică și Calculatoare \par}
-\vspace{0.3cm}
-\hrule height 1pt
-\vspace{1.5cm}
+\thispagestyle{empty}
 
-{\large\bfseries LUCRARE DE LICENȚĂ \par}
-\vspace{2cm}
-
-{\LARGE\bfseries Aplicație Mobilă RPG pentru Studiu,\\
-Focalizare și Jocuri Inteligente cu AI \par}
-\vspace{0.6cm}
-{\large\itshape -- FocusQuest --\par}
-
-\vspace{3cm}
-
-\begin{minipage}[t]{0.45\textwidth}
-\begin{flushleft}
-\textbf{Coordonator:}\\
-Ș.l. dr. ing. Cătălin Iapă
-\end{flushleft}
-\end{minipage}
+\noindent
+\begin{minipage}[t]{0.60\textwidth}
+  {\large\bfseries Calculatoare și Tehnologia Informației}\\[0.3cm]
+  {\large\bfseries 2026}
+\end{minipage}%
 \hfill
-\begin{minipage}[t]{0.45\textwidth}
-\begin{flushright}
-\textbf{Absolvent:}\\
-Craiu Bogdan
-\end{flushright}
+\begin{minipage}[t]{0.35\textwidth}
+  \begin{flushright}
+    \includegraphics[width=\linewidth]{logo_UPT}
+  \end{flushright}
 \end{minipage}
+
+\vspace{5cm}
+\begin{center}
+  {\bfseries\LARGE Aplicație Mobilă RPG pentru Studiu,\\[0.5cm]
+  Concentrare și Jocuri Inteligente cu AI}\\[1cm]
+  {\bfseries\Large --- FocusQuest ---}
+\end{center}
+
+\vspace{4cm}
+
+\noindent{\large\bfseries Candidat: Craiu Bogdan}\\[0.5cm]
+\noindent{\large\bfseries Coordonator științific: Ș.l. dr. ing. Cătălin Iapă}
 
 \vfill
-{\large Timișoara, 2026 \par}
+
+\begin{center}
+  {\large Sesiunea: Iulie 2026}
+\end{center}
+\setcounter{page}{1}
 \end{titlepage}
 
 % ============================================================
@@ -153,7 +185,7 @@ Craiu Bogdan
 Prezenta lucrare de licență descrie proiectarea, implementarea și testarea unei aplicații mobile
 cross-platform denumită \textbf{FocusQuest}, dezvoltată cu React Native și TypeScript.
 Aplicația îmbină elemente de joc de rol (RPG) cu instrumente de productivitate, fiind
-destinată oricui este interesat de productivitate, studiu și jocuri inteligente cu AI mai,
+destinată oricui este interesat de productivitate, studiu și jocuri inteligente cu AI, mai
 ales elevilor care urmează să susțină admiterea pentru intrarea la Universitatea Politehnica Timișoara.
 
 Principalele contribuții ale lucrării sunt:
@@ -164,7 +196,7 @@ Principalele contribuții ale lucrării sunt:
   \item Integrarea motorului de șah \textit{Maia Chess} — un model antrenat să imite stilul
     de joc uman la diverse niveluri Elo (1100–1500) — rulat complet local, fără conexiune la
     internet.
-  \item Un sistem de economie virtuală bazat pe monede câștigate prin sesiuni de focalizare,
+  \item Un sistem de economie virtuală bazat pe monede câștigate prin sesiuni de concentrare,
     jocuri și activități de învățare, utilizat pentru deblocarea conținutului de dificultate
     mai ridicată.
   \item Un modul de învățare structurat pe trei discipline matematice (algebră, analiză şi
@@ -172,13 +204,20 @@ Principalele contribuții ale lucrării sunt:
     randate cu KaTeX.
   \item Persistența stării aplicației folosind AsyncStorage și un gestionar global de stare
     bazat pe React Context API cu \texttt{useReducer}.
+  \item Un sistem de gamificare de tip RPG ce cuprinde experiență (XP) cu niveluri progresive,
+    quest-uri zilnice cu resetare automată și efecte sonore retro sintetizate, proiectat
+    pentru a susține motivația pe termen lung.
+  \item Un modul de examen simulat (12 întrebări extrase aleatoriu, câte 4 din fiecare
+    disciplină) și un set de puzzle-uri de șah de tip ``mat în $N$ mutări'' validate
+    algoritmic cu \texttt{chess.js}, pentru consolidarea cunoștințelor și a gândirii tactice.
 \end{itemize}
 
 Aplicația a fost testată pe dispozitive Android și respectă arhitectura componentelor React
 Native, cu o separare clară a logicii de afaceri față de stratul de prezentare.
 
 \textbf{Cuvinte cheie:} React Native, TypeScript, ONNX Runtime, ResNet-50, Maia Chess,
-gamificare, aplicație mobilă, productivitate, algoritmi de backtracking, KaTeX.
+gamificare, niveluri XP, examen simulat, puzzle-uri de șah, aplicație mobilă, productivitate,
+algoritmi de backtracking, KaTeX.
 
 \newpage
 
@@ -209,10 +248,17 @@ The main contributions are:
     solutions rendered with KaTeX.
   \item Application state persistence using AsyncStorage and a global state manager based on
     the React Context API with \texttt{useReducer}.
+  \item An RPG-style gamification system comprising experience points (XP) with progressive
+    levels, auto-resetting daily quests and synthesized retro sound effects, designed to
+    sustain long-term motivation.
+  \item A mock-exam module (12 randomly drawn questions, four per subject) and a set of
+    ``mate-in-$N$'' chess puzzles algorithmically validated with \texttt{chess.js}, for
+    reinforcing knowledge and tactical thinking.
 \end{itemize}
 
 \textbf{Keywords:} React Native, TypeScript, ONNX Runtime, ResNet-50, Maia Chess,
-gamification, mobile application, productivity, backtracking algorithms, KaTeX.
+gamification, XP levels, mock exam, chess puzzles, mobile application, productivity,
+backtracking algorithms, KaTeX.
 
 \newpage
 
@@ -227,6 +273,8 @@ gamification, mobile application, productivity, backtracking algorithms, KaTeX.
 % ============================================================
 \listoftables
 \addcontentsline{toc}{chapter}{Lista tabelelor}
+\listoffigures
+\addcontentsline{toc}{chapter}{Lista figurilor}
 
 % ============================================================
 %  CAPITOLUL 1 – INTRODUCERE
@@ -259,10 +307,11 @@ Obiectivele principale ale acestei lucrări de licență sunt:
     multi-ecran, gestionare globală a stării și persistență locală a datelor.
   \item Integrarea a două modele ONNX \textit{on-device}: ResNet-50 pentru clasificarea
     imaginilor și Maia Chess pentru jocul de șah cu inteligență artificială.
-  \item Construirea unui sistem de gamificare funcțional cu monede, realizări deblocabile,
-    inventar și dificultăți progresive.
+  \item Construirea unui sistem de gamificare funcțional cu monede, experiență (XP) și
+    niveluri, quest-uri zilnice, realizări deblocabile, inventar și dificultăți progresive.
   \item Furnizarea unui modul educațional cu exerciții matematice structurate, complet
-    cu răspunsuri multiple şi soluții detaliate randate cu KaTeX.
+    cu răspunsuri multiple şi soluții detaliate randate cu KaTeX, precum și a unui mod de
+    examen simulat și a unui set de puzzle-uri de șah tactice.
   \item Demonstrarea viabilității rulării modelelor de rețele neuronale direct pe dispozitive
     mobile cu resurse limitate.
 \end{itemize}
@@ -289,18 +338,18 @@ Lucrarea este organizată în nouă capitole:
 % ============================================================
 \chapter{Stadiul actual al domeniului (State of the Art)}
 
-\section{Aplicații de productivitate și focalizare}
+\section{Aplicații de productivitate și concentrare}
 
 \subsection{Forest – Stay Focused}
 
-Forest este una dintre cele mai cunoscute aplicații de productivitate cu element de
+Forest~\cite{forest} este una dintre cele mai cunoscute aplicații de productivitate cu element de
 gamificare. Utilizatorul plantează un copac virtual care crește cât timp nu folosește
 telefonul; dacă iese din aplicație, copacul moare. Aplicația colaborează cu organizații
 de plantare a copacilor reali, ceea ce adaugă o dimensiune de impact social.
 
 \textbf{Comparație cu FocusQuest:} Forest se concentrează exclusiv pe tehnica Pomodoro
 și nu integrează niciun conținut educațional, niciun joc inteligent și niciun model AI.
-FocusQuest extinde conceptul de focalizare cu un ecosistem complet: sesiunile de focus
+FocusQuest extinde conceptul de concentrare cu un ecosistem complet: sesiunile de focus
 generează monede care permit accesul la jocuri și conținut educațional.
 
 \subsection{Todoist și Notion}
@@ -337,7 +386,7 @@ gândire conceptuală, nu spre pregătirea pentru examinări de tip grilă speci
 
 \subsection{Duolingo}
 
-Duolingo este exemplul canonic de aplicație educațională cu gamificare: streak-uri zilnice,
+Duolingo~\cite{duolingo} este exemplul canonic de aplicație educațională cu gamificare: streak-uri zilnice,
 monede virtuale, nivele și personaje animate. FocusQuest se inspiră din principiile de design
 ale Duolingo (streak-uri, monede, recompense), adaptate contextului unui RPG și extins cu
 funcționalități AI locale.
@@ -350,8 +399,8 @@ cu zona de jocuri (șah AI, Sudoku) și cu zona de productivitate (timer focus, 
 
 \subsection{Chess.com și Lichess}
 
-Chess.com și Lichess sunt platformele dominante de șah online. Ambele oferă oponenți AI
-la multiple niveluri de dificultate. Lichess este open-source și oferă motorul Stockfish,
+Chess.com și Lichess~\cite{lichess} sunt platformele dominante de șah online. Ambele oferă oponenți AI
+la multiple niveluri de dificultate. Lichess este open-source și oferă motorul Stockfish~\cite{stockfish},
 unul dintre cei mai puternici motori de șah din lume.
 
 \textbf{Diferența față de FocusQuest:} FocusQuest nu utilizează Stockfish (care joacă la
@@ -386,14 +435,14 @@ confidențialitatea datelor și funcționalitate offline completă.
 
 \subsection{Habitica}
 
-Habitica transformă gestionarea obiceiurilor și sarcinilor zilnice într-un RPG: utilizatorul
+Habitica~\cite{habitica} transformă gestionarea obiceiurilor și sarcinilor zilnice într-un RPG: utilizatorul
 are un personaj, câștigă experiență și obiecte, luptă cu monștri în grupuri. Este cea mai
 apropiată aplicație conceptual de FocusQuest, dar:
 \begin{itemize}
   \item Nu integrează modele AI locale;
   \item Nu oferă jocuri inteligente (șah, Sudoku);
   \item Nu are conținut educațional structurat cu exerciții specifice;
-  \item Nu are un timer de focalizare dedicat cu animații de personaj.
+  \item Nu are un timer de concentrare dedicat cu animații de personaj.
 \end{itemize}
 
 \subsection{ClassDojo}
@@ -433,7 +482,7 @@ Funcționare offline & Da & Da & Nu & Parțial & Nu & Parțial \\
 
 Din tabelul \ref{tab:comparison} reiese că FocusQuest ocupă o nișă unică prin combinarea
 tuturor acestor funcționalități într-o singură aplicație. Nicio altă aplicație existentă
-nu reunește timere de focalizare, jocuri inteligente cu AI local, conținut educațional
+nu reunește timere de concentrare, jocuri inteligente cu AI local, conținut educațional
 specific și un sistem RPG de gamificare.
 
 % ============================================================
@@ -443,7 +492,7 @@ specific și un sistem RPG de gamificare.
 
 \section{React Native}
 
-React Native este un framework open-source dezvoltat de Meta (Facebook) care permite
+React Native~\cite{reactnative} este un framework open-source dezvoltat de Meta (Facebook) care permite
 crearea de aplicații mobile native pentru iOS și Android folosind JavaScript și TypeScript.
 Spre deosebire de abordările hibride (ex. Ionic, Cordova), React Native compilează
 componentele la UI nativ al platformei, nu la WebView, rezultând o performanță apropiată
@@ -462,7 +511,7 @@ Avantajele care au determinat alegerea React Native:
 
 \section{TypeScript}
 
-TypeScript este un superset al JavaScript care adaugă tipizare statică. Întregul proiect
+TypeScript~\cite{typescript} este un superset al JavaScript care adaugă tipizare statică. Întregul proiect
 este scris în TypeScript, ceea ce oferă:
 \begin{itemize}
   \item Detectarea timpurie a erorilor la compilare;
@@ -472,7 +521,7 @@ este scris în TypeScript, ceea ce oferă:
 
 \section{React Navigation}
 
-Navigarea în aplicație este gestionată de biblioteca \textbf{React Navigation 7.x},
+Navigarea în aplicație este gestionată de biblioteca \textbf{React Navigation 7.x}~\cite{reactnavigation},
 utilizând două tipuri de navigatori:
 \begin{itemize}
   \item \texttt{createBottomTabNavigator} — pentru cele cinci ecrane principale
@@ -483,15 +532,15 @@ utilizând două tipuri de navigatori:
 
 \section{AsyncStorage}
 
-\textbf{@react-native-async-storage/async-storage} (versiunea 2.1.0) este biblioteca
+\textbf{@react-native-async-storage/async-storage}~\cite{asyncstorage} (versiunea 2.1.0) este biblioteca
 de stocare cheie-valoare persistentă utilizată pentru salvarea stării aplicației între
 sesiuni. Datele sunt serializate în format JSON și stocate local pe dispozitiv sub cheia
 \texttt{retro-arcade-study-state-v1}.
 
 \section{ONNX Runtime React Native}
 
-\textbf{onnxruntime-react-native} (versiunea 1.20.0) este un pachet care expune
-ONNX Runtime — un motor de inferență pentru modele de machine learning în format ONNX
+\textbf{onnxruntime-react-native}~\cite{onnxruntime} (versiunea 1.20.0) este un pachet care expune
+ONNX Runtime~\cite{onnxformat} — un motor de inferență pentru modele de machine learning în format ONNX
 — aplicațiilor React Native. Permite rularea modelelor complet local, fără server.
 
 Funcționalitățile utilizate:
@@ -504,7 +553,7 @@ Funcționalitățile utilizate:
 
 \section{chess.js}
 
-\textbf{chess.js} (versiunea 1.0.0) este o bibliotecă JavaScript de logică a jocului
+\textbf{chess.js}~\cite{chessjs} (versiunea 1.0.0) este o bibliotecă JavaScript de logică a jocului
 de șah. Oferă:
 \begin{itemize}
   \item Validarea mutărilor legale;
@@ -535,16 +584,24 @@ de resurse Android în directorul de cache, de unde pot fi accesate de ONNX Runt
 \section{react-native-webview}
 
 \textbf{react-native-webview} (versiunea 13.16.1) este utilizat de componenta
-\texttt{MathRenderer} pentru randarea formulelor matematice LaTeX cu biblioteca KaTeX
-(încărcată din CDN sau local).
+\texttt{MathRenderer} pentru randarea formulelor matematice LaTeX cu biblioteca KaTeX,
+încărcată în interiorul WebView-ului dintr-o rețea de distribuție de conținut (CDN).
 
 \section{KaTeX}
 
-\textbf{KaTeX} (versiunea 0.16.11) este o bibliotecă JavaScript de randare a formulelor
+\textbf{KaTeX}~\cite{katex} (versiunea 0.16.11) este o bibliotecă JavaScript de randare a formulelor
 matematice LaTeX, utilizată în ecranele de exerciții pentru afișarea problemelor și
-soluțiilor cu formatare matematică corectă. Este încărcată într-un WebView embed.
+soluțiilor cu formatare matematică corectă. Biblioteca este încărcată într-un WebView embed
+direct de pe CDN-ul public \texttt{jsdelivr} (fișierele \texttt{katex.min.css},
+\texttt{katex.min.js} și extensia \texttt{auto-render}). Randarea formulelor matematice
+reprezintă, prin urmare, \textbf{singura funcționalitate a aplicației care necesită o
+conexiune activă la internet}; toate celelalte module — inclusiv cele două modele de
+inteligență artificială — funcționează complet \textit{offline} (detalii în
+Secțiunea~\ref{sec:online-dependency}).
 
 \section{Alte pachete}
+
+Dependențele suplimentare utilizate în proiect sunt prezentate în Tabelul~\ref{tab:deps}.
 
 \begin{table}[H]
 \centering
@@ -585,7 +642,7 @@ FocusQuest urmează o arhitectură pe straturi, specifică aplicațiilor React N
 \section{Structura directorului de proiect}
 
 \begin{lstlisting}[language=bash, caption={Structura principală a proiectului}]
-SampleApp/
+FocusQuest/
   App.tsx                   # Punct de intrare principal
   package.json              # Dependente si scripturi
   tsconfig.json             # Configurare TypeScript
@@ -603,7 +660,8 @@ SampleApp/
       RootNavigator.tsx     # Configurare navigare
     screens/                # Ecrane principale
     services/
-      MusicPlayer.ts        # Serviciu audio
+      MusicPlayer.ts        # Serviciu muzica de fundal
+      SoundEffects.ts       # Serviciu efecte sonore (chiptune)
     theme/
       colors.ts             # Paleta de culori
     types/
@@ -616,8 +674,8 @@ Aplicația utilizează o arhitectură de navigare pe două niveluri:
 
 \begin{itemize}
   \item \textbf{Stack Navigator (rădăcină)} — conține TabNavigator ca ecran principal
-    și ecranele secundare (Achievements, Statistics, Inventory, ExerciseList, ExerciseDetail)
-    ca ecrane de stivă.
+    și ecranele secundare (Achievements, Statistics, Inventory, ExerciseList, ExerciseDetail,
+    Quiz, Puzzles) ca ecrane de stivă.
   \item \textbf{Tab Navigator (principal)} — cinci tab-uri bottom: Focus, Arcade, Learn,
     Journal, Profile.
 \end{itemize}
@@ -640,6 +698,8 @@ export type RootStackParamList = {
   Inventory: undefined;
   ExerciseList: { subject: LearningSubject };
   ExerciseDetail: { subject: LearningSubject; exerciseId: string };
+  Quiz: undefined;
+  Puzzles: undefined;
 };
 \end{lstlisting}
 
@@ -651,15 +711,15 @@ Fluxul de date respectă principiul unidirecțional specific arhitecturii Flux/R
   \item Utilizatorul interacționează cu un component UI (ex. apasă butonul de Start Timer);
   \item Componentul apelează o funcție din contextul global (ex. \texttt{completeSession});
   \item Funcția dispatch-uiește un \texttt{Action} către reducer;
-  \item Reducer-ul calculează noul stat pe baza acțiunii și stării curente;
-  \item Noul stat este salvat în AsyncStorage;
-  \item Toate componentele care consumă contextul sunt re-randate cu noul stat.
+  \item Reducer-ul calculează noua stare pe baza acțiunii și a stării curente;
+  \item Noua stare este salvată în AsyncStorage;
+  \item Toate componentele care consumă contextul sunt re-randate cu noua stare.
 \end{enumerate}
 
 \section{Tema vizuală}
 
 Paleta de culori a aplicației este definită în \texttt{src/theme/colors.ts} și respectă
-o estetică retro-neon RPG:
+o estetică retro-neon RPG (Tabelul~\ref{tab:colors}):
 
 \begin{table}[H]
 \centering
@@ -680,6 +740,35 @@ o estetică retro-neon RPG:
 \bottomrule
 \end{tabular}
 \end{table}
+
+\section{Reutilizarea componentelor: tabla de șah partajată}
+
+Cele două moduri de șah ale aplicației — \textbf{Cosmic Chess Gauntlet} (cu motor minimax)
+și \textbf{Maia AI Chess Challenge} (cu rețea neurală) — partajează exact aceeași
+reprezentare vizuală a tablei. Pentru a respecta principiul \textit{DRY} (\textit{Don't
+Repeat Yourself}) și a evita duplicarea codului, randarea tablei a fost extrasă într-o
+componentă de prezentare reutilizabilă, \texttt{ChessBoard} (\texttt{src/components/ChessBoard.tsx}).
+
+Componenta este complet \textit{stateless}: primește prin proprietăți starea tablei
+(\texttt{boardState}), pătratul selectat, lista de mutări legale și un \textit{callback}
+de interacțiune, fiind responsabilă exclusiv de desenarea grilei $8\times8$, a etichetelor
+de rânduri/coloane, a evidențierii pătratului selectat și a indicatorilor de mutare legală:
+
+\begin{lstlisting}[language=Java, caption={Interfața componentei reutilizabile ChessBoard}]
+type Props = {
+  boardState: (Piece | null)[][];
+  selectedSquare: string | null;
+  legalTargets: string[];
+  onSquarePress: (square: string) => void;
+  orientation?: 'white' | 'black'; // permite rotirea tablei
+};
+\end{lstlisting}
+
+Fiecare arenă de șah își păstrează exclusiv propria logică (motorul AI, dificultățile,
+recompensele), delegând în întregime afișarea tablei către \texttt{ChessBoard}. Refactorizarea
+a eliminat aproximativ 330 de linii de cod duplicat, concentrând randarea într-un singur loc
+ușor de întreținut. Proprietatea \texttt{orientation} permite, suplimentar, rotirea tablei
+pentru ca jucătorul să poată juca și cu piesele negre (Secțiunea~\ref{sec:play-black}).
 
 \section{Inițializarea aplicației (\texttt{App.tsx})}
 
@@ -730,7 +819,7 @@ restaurarea lor completă.
 \section{Structura stării globale}
 
 Starea aplicației este definită în \texttt{src/context/GameContext.tsx} ca interfața
-TypeScript \texttt{GameState}. Aceasta cuprinde toate datele necesare aplicației:
+TypeScript \texttt{GameState}. Aceasta cuprinde toate datele necesare aplicației (Tabelul~\ref{tab:gamestate}):
 
 \begin{table}[H]
 \centering
@@ -742,7 +831,7 @@ TypeScript \texttt{GameState}. Aceasta cuprinde toate datele necesare aplicație
 \midrule
 \texttt{profileName} & \texttt{string} & Numele profilului utilizatorului \\
 \texttt{coins} & \texttt{number} & Monede virtuale disponibile \\
-\texttt{streak} & \texttt{number} & Zile consecutive de focalizare \\
+\texttt{streak} & \texttt{number} & Zile consecutive de concentrare \\
 \texttt{bestSessionMinutes} & \texttt{number} & Cea mai lungă sesiune de focus \\
 \texttt{totalFocusMinutes} & \texttt{number} & Total minute de focus acumulate \\
 \texttt{focusSessions} & \texttt{FocusSession[]} & Ultimele 5 sesiuni de focus \\
@@ -758,15 +847,17 @@ TypeScript \texttt{GameState}. Aceasta cuprinde toate datele necesare aplicație
 \texttt{totalCoinsEarned} & \texttt{number} & Total monede acumulate de la instalare \\
 \texttt{lastSessionDateISO} & \texttt{string?} & Data calendaristică a ultimei sesiuni (ISO) \\
 \texttt{arcadeHighScores} & \texttt{\{lanes, reaction: number\}} & Recorduri personale mini-jocuri \\
-\texttt{ownedSkins} & \texttt{string[]} & Skin-urile personajului deținute \\
-\texttt{activeSkin} & \texttt{string} & Skin-ul activ al personajului \\
+\texttt{xp} & \texttt{number} & Total puncte de experiență acumulate \\
+\texttt{daily} & \texttt{DailyProgress} & Contoare quest-uri zilnice (cu cheie de dată) \\
+\texttt{quizStats} & \texttt{QuizStats} & Statistici examene simulate \\
+\texttt{puzzleStats} & \texttt{PuzzleStats} & Statistici puzzle-uri de șah rezolvate \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \section{Sistemul de acțiuni (Reducer)}
 
-Reducer-ul gestionează 20 de tipuri de acțiuni, dintre care cele mai importante sunt:
+Reducer-ul gestionează peste 24 de tipuri de acțiuni, dintre care cele mai importante sunt:
 
 \begin{description}
   \item[\texttt{COMPLETE\_SESSION}] Finalizarea unei sesiuni de focus. Calculează monedele
@@ -782,12 +873,22 @@ Reducer-ul gestionează 20 de tipuri de acțiuni, dintre care cele mai important
     nivelelor de dificultate mai ridicate contra cost de monede.
   \item[\texttt{UNLOCK\_ACHIEVEMENT}] Deblocarea unei realizări.
   \item[\texttt{MARK\_EXERCISE\_SOLVED}] Marcarea unui exercițiu ca rezolvat.
+  \item[\texttt{COMPLETE\_QUIZ}] Finalizarea unui examen simulat: acordă monede și XP,
+    actualizează statisticile și adaugă în progresul de învățare exercițiile rezolvate corect.
+  \item[\texttt{COMPLETE\_PUZZLE}] Înregistrarea rezolvării unui puzzle de șah (recompensă
+    acordată o singură dată per puzzle).
+  \item[\texttt{CLAIM\_QUEST / REFRESH\_DAILY}] Revendicarea unui quest zilnic finalizat,
+    respectiv resetarea contoarelor la schimbarea zilei calendaristice.
   \item[\texttt{HYDRATE}] Restaurarea stării din AsyncStorage la pornirea aplicației.
 \end{description}
 
+Fiecare acțiune care acordă recompense (sesiuni de focus, victorii la jocuri, exerciții,
+examene, puzzle-uri) incrementează simultan câmpul \texttt{xp}, iar acțiunile relevante
+actualizează contoarele zilnice utilizate de quest-uri.
+
 \section{Formula de calcul a monedelor din sesiunile de focus}
 
-Monedele câștigate per sesiune de focus sunt calculate astfel:
+Monedele câștigate per sesiune de focus sunt calculate conform Ecuației~\ref{eq:coins}:
 
 \begin{equation}
   \text{coinsEarned} = \max(3,\; \lfloor \text{durationMinutes} \times 1{,}5 \rfloor)
@@ -806,6 +907,68 @@ Streak-ul este calculat pe baza datei calendaristice (nu a orei):
   \item Dacă ultima sesiune a fost ieri: streak crește cu 1;
   \item Altfel: streak se resetează la 1.
 \end{itemize}
+
+\section{Sistemul de experiență (XP) și niveluri}
+\label{sec:xp}
+
+Pe lângă economia de monede (resursă consumabilă pentru deblocări), aplicația implementează
+un sistem de \textbf{experiență (XP)} cumulativă, ireversibilă, care determină \textbf{nivelul}
+jucătorului — un indicator de progres pe termen lung specific jocurilor de rol. Puncte de
+experiență sunt acordate pentru aproape fiecare activitate productivă: minute de concentrare,
+exerciții rezolvate, victorii la șah/Sudoku, examene simulate, puzzle-uri și revendicarea
+quest-urilor zilnice.
+
+XP-ul necesar pentru a avansa de la nivelul $L$ la nivelul $L+1$ crește liniar
+($\text{XP\_STEP} \times L$, cu $\text{XP\_STEP} = 100$), astfel încât XP-ul cumulativ
+necesar pentru a \emph{atinge} nivelul $L$ este dat de Ecuația~\ref{eq:xp}:
+
+\begin{equation}
+  \text{totalXP}(L) = \text{XP\_STEP} \cdot \frac{(L-1)\,L}{2}
+  \label{eq:xp}
+\end{equation}
+
+Nivelul curent se obține prin inversarea acestei relații (Ecuația~\ref{eq:level}):
+
+\begin{equation}
+  L(\text{xp}) = \left\lfloor \frac{1 + \sqrt{1 + 8\,\text{xp}/\text{XP\_STEP}}}{2} \right\rfloor
+  \label{eq:level}
+\end{equation}
+
+Funcțiile pure de conversie sunt izolate în modulul \texttt{src/constants/leveling.ts}, fiind
+reutilizate atât de interfață (bara de progres \texttt{LevelBar}), cât și de sistemul de
+realizări. La trecerea într-un nivel superior, aplicația oferă un \textit{feedback} dedicat
+(efect sonor de tip fanfară și vibrație), detectat printr-un \texttt{useEffect} care compară
+nivelul curent cu cel anterior.
+
+\section{Quest-uri zilnice}
+\label{sec:quests}
+
+Sistemul de quest-uri zilnice încurajează revenirea zilnică în aplicație. Trei obiective
+sunt disponibile în fiecare zi (Tabelul~\ref{tab:quests}), iar progresul lor este derivat
+din contoare zilnice menținute în câmpul \texttt{daily} al stării globale.
+
+\begin{table}[H]
+\centering
+\caption{Quest-urile zilnice disponibile}
+\label{tab:quests}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Obiectiv} & \textbf{Țintă} & \textbf{Recompensă} \\
+\midrule
+Finalizează o sesiune de focus & 1 & 10 monede + 30 XP \\
+Rezolvă 5 exerciții & 5 & 15 monede + 40 XP \\
+Câștigă un joc & 1 & 10 monede + 30 XP \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Structura \texttt{daily} reține cheia zilei curente (\texttt{dateISO}) împreună cu contoarele
+de progres (sesiuni de focus, exerciții, victorii) și lista quest-urilor deja revendicate.
+La fiecare acțiune relevantă, o funcție utilitară (\texttt{rollDaily}) compară cheia stocată
+cu data curentă: dacă ziua s-a schimbat, contoarele și lista de revendicări sunt resetate
+automat înainte de incrementare. Astfel, resetarea quest-urilor este \textbf{leneșă}
+(\textit{lazy}) — nu necesită un temporizator de fundal, ci se produce la prima interacțiune
+din ziua nouă (sau la pornirea aplicației, prin acțiunea \texttt{REFRESH\_DAILY}).
 
 \section{Persistența cu AsyncStorage}
 
@@ -834,11 +997,37 @@ useEffect(() => {
 Cheia de stocare este versionată (\texttt{retro-arcade-study-state-v1}) pentru a permite
 migrări viitoare de schemă fără a pierde datele existente.
 
+Restaurarea stării (acțiunea \texttt{HYDRATE}) nu este o simplă atribuire a obiectului
+deserializat, ci o operație defensivă de îmbinare. Starea salvată este combinată cu
+\texttt{initialState} folosit ca bază (\textit{baseline}), astfel încât orice câmp nou,
+introdus într-o versiune mai recentă a aplicației și absent din datele salvate anterior, să
+primească automat valoarea sa implicită. În plus, reducer-ul revalidează sub-structurile
+critice: obiectele de inventar sunt re-rezolvate față de catalogul curent (pentru a prelua
+eventualele modificări de denumire sau imagine), iar nivelurile de dificultate deblocate la
+șah sunt rederivate din numărul de victorii înregistrate. Acest mecanism protejează
+aplicația împotriva datelor parțial corupte sau învechite și asigură că interfața primește
+întotdeauna o stare completă și coerentă, indiferent de versiunea în care au fost salvate
+inițial datele.
+
 \section{Context API și hook-ul \texttt{useGame}}
 
 Starea și funcțiile de modificare sunt expuse prin \texttt{GameContext} și consumate prin
 hook-ul \texttt{useGame()}. Această abordare evită prop drilling și centralizează toată
 logica de business.
+
+Alegerea combinației \texttt{Context API + useReducer} în locul unei biblioteci externe de
+gestiune a stării (precum Redux sau Zustand) a fost una deliberată: aplicația dispune de o
+singură sursă de adevăr (\textit{single source of truth}), iar volumul de logică nu
+justifică dependențele și boilerplate-ul suplimentar ale unui store extern. Funcțiile de
+acțiune expuse prin context (de exemplu \texttt{completeSession}, \texttt{finishChessMatch},
+\texttt{markExerciseSolved}) sunt memoizate, astfel încât referințele lor să rămână stabile
+între re-randări și să nu provoace re-randarea inutilă a componentelor consumatoare.
+O parte din logica de rezolvare — calculul recompenselor, extragerea aleatorie a obiectelor
+de inventar și verificarea pragurilor de deblocare — este încapsulată direct în aceste
+funcții, care returnează către interfață obiecte de rezultat (\textit{resolution objects})
+folosite ulterior pentru afișarea ferestrelor modale de confirmare. Astfel, componentele de
+prezentare rămân subțiri, iar regulile de joc sunt concentrate într-un singur loc, ușor de
+testat și de întreținut.
 
 % ============================================================
 %  CAPITOLUL 6 – MODULE FUNCȚIONALE
@@ -853,10 +1042,31 @@ Ecranul principal este punctul de intrare în aplicație și cuprinde:
 \begin{itemize}
   \item Un mesaj de bun venit cu numele utilizatorului;
   \item Trei badge-uri statistice: monede, focus streak și cea mai lungă sesiune;
+  \item Bara de experiență și nivel (componenta \texttt{LevelBar});
+  \item Panoul de quest-uri zilnice (componenta \texttt{DailyQuests});
   \item Un player de muzică lo-fi (componenta \texttt{MusicControl});
-  \item Timer-ul de focalizare (componenta \texttt{FocusTimer});
+  \item Timer-ul de concentrare (componenta \texttt{FocusTimer});
   \item Istoricul ultimelor 5 sesiuni de focus cu timestamp și locație.
 \end{itemize}
+
+Interfața ecranului principal este prezentată în Figura~\ref{fig:homescreen}, iar
+istoricul sesiunilor cu informații de geolocalizare în Figura~\ref{fig:homescreengeo}.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.44\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{home_screen_with_quests.jpeg}
+  \caption{Nivelul curent și misiunile zilnice.\label{fig:homescreen}}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.44\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{home_screen_recent_sessions_with_geolocation.jpeg}
+  \caption{Timer-ul de concentrare activ și Istoricul sesiunilor recente cu locația GPS a fiecărei sesiuni.\label{fig:homescreengeo}}
+\end{subfigure}
+\caption{Ecranul principal al aplicației FocusQuest.}
+\end{figure}
 
 \subsection{Componenta FocusTimer}
 
@@ -889,6 +1099,8 @@ cu două optimizări tehnice vizibile în codul sursă:
     înainte de pornirea animației, eliminând flickering-ul la prima redare.
 \end{enumerate}
 
+Animațiile disponibile sunt descrise în Tabelul~\ref{tab:animations}.
+
 \begin{table}[H]
 \centering
 \caption{Animațiile sprite ale personajului Skeleton Crusader}
@@ -907,7 +1119,7 @@ cu două optimizări tehnice vizibile în codul sursă:
 
 Hook-ul \texttt{useGeolocation} utilizează \texttt{@react-native-community/geolocation}
 pentru a obține coordonatele GPS. Acestea sunt trimise API-ului gratuit
-\textbf{Nominatim (OpenStreetMap)} pentru reverse geocoding, obținând numele orașului
+\textbf{Nominatim (OpenStreetMap)}~\cite{nominatim} pentru reverse geocoding, obținând numele orașului
 și al țării. Aceste date sunt stocate împreună cu sesiunea de focus și afișate în
 istoricul sesiunilor.
 
@@ -929,7 +1141,8 @@ muzicii (activată/dezactivată) este persistată în \texttt{GameState}.
 
 \subsection{Prezentare generală}
 
-Ecranul Arcade grupează cinci mini-jocuri accesibile prin card selector:
+Ecranul Arcade grupează cinci mini-jocuri accesibile prin card selector, după cum se
+poate observa în Figura~\ref{fig:arcadelist}:
 \begin{enumerate}
   \item \textbf{Hyper Lane Defender} — mini-joc reflex;
   \item \textbf{Neon Reaction Pulse} — mini-joc timp de reacție;
@@ -937,6 +1150,12 @@ Ecranul Arcade grupează cinci mini-jocuri accesibile prin card selector:
   \item \textbf{Maia AI Chess Challenge} — șah cu modelul Maia ONNX;
   \item \textbf{Sudoku Challenge} — puzzle Sudoku.
 \end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{list_of_all_games.jpeg}
+\caption{Lista jocurilor disponibile în ecranul Arcade al aplicației FocusQuest.\label{fig:arcadelist}}
+\end{figure}
 
 \subsection{Hyper Lane Defender}
 
@@ -1033,10 +1252,21 @@ const solveSudoku = (grid: (number | null)[][]): boolean => {
 
 \subsubsection{Sistemul de penalizare}
 
+Aspectul vizual al unui joc de Sudoku în desfășurare este prezentat în
+Figura~\ref{fig:sudoku}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{sudoku_game.jpeg}
+\caption{Jocul de Sudoku în aplicația FocusQuest, cu grila de 9×9 și bara de progres.\label{fig:sudoku}}
+\end{figure}
+
 Utilizatorul are maxim 3 greșeli per partidă. La depășirea limitei, jocul se încheie.
 Celulele introduse greșit sunt marcate vizual, iar la corecție marcajul dispare.
 
 \subsubsection{Recompense Sudoku}
+
+Recompensele și costurile de deblocare pe dificultăți sunt prezentate în Tabelul~\ref{tab:sudoku_rewards}.
 
 \begin{table}[H]
 \centering
@@ -1066,6 +1296,14 @@ conțin:
     victorios.
 \end{itemize}
 
+Ecranul jurnalului cu mai multe intrări existente este ilustrat în Figura~\ref{fig:journal}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{journal_screen_with_entries.jpeg}
+\caption{Ecranul jurnalului digital cu lista intrărilor utilizatorului și stările emoționale asociate.\label{fig:journal}}
+\end{figure}
+
 \subsection{Structura datelor Flashcard}
 
 \begin{lstlisting}[language=Java, caption={Structura tipului Flashcard}]
@@ -1088,7 +1326,14 @@ AsyncStorage), eliminând necesitatea unui sistem de fișiere separat.
 
 La adăugarea unei imagini, hook-ul \texttt{useOnnxClassifier} este invocat automat pentru
 a rula inferența ResNet-50 și a sugera un titlu pentru intrarea de jurnal. Utilizatorul
-poate accepta sugestia sau poate introduce manual titlul.
+poate accepta sugestia sau poate introduce manual titlul. În Figura~\ref{fig:resnetjournal}
+este prezentată clasificarea automată a unei imagini din jurnal de către modelul ResNet-50.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{journal_resnet_recognizing_image.jpeg}
+\caption{Clasificarea automată a imaginii din jurnal prin modelul ResNet-50 INT8 rulat local.\label{fig:resnetjournal}}
+\end{figure}
 
 \section{Ecranul de Profil (ProfileScreen)}
 
@@ -1102,21 +1347,45 @@ Ecranul de profil permite:
 
 \section{Ecranul de Statistici (StatisticsScreen)}
 
-Dashboard-ul de statistici cuprinde cinci secțiuni:
+Dashboard-ul de statistici agregă indicatorii de performanță din toate modulele aplicației
+(Figura~\ref{fig:statistics}):
 \begin{enumerate}
+  \item \textbf{Nivel} \textemdash{} bara de XP și nivelul curent (componenta \texttt{LevelBar});
   \item \textbf{Focus Sessions} \textemdash{} total sesiuni, sesiuni \^{\i}n ultimele 7/30 zile,
     durat\u{a} medie, durat\u{a} maxim\u{a}, total minute de focus;
-  \item \textbf{Chess Statistics} — total jocuri, victorii, rată de succes,
-    detalii pe dificultăți;
+  \item \textbf{Chess Statistics} — total jocuri, victorii, rată de succes, detalii pe dificultăți;
+  \item \textbf{Maia AI Chess} — jocuri, victorii și rată de succes pe cele trei niveluri Elo;
+  \item \textbf{Sudoku} — puzzle-uri jucate și finalizate, pe dificultăți;
+  \item \textbf{Învățare} — exerciții rezolvate pe discipline, acuratețea la examenele
+    simulate și numărul de puzzle-uri de șah rezolvate;
   \item \textbf{Journal Insights} — total intrări, favorite, starea emoțională predominantă;
   \item \textbf{Economy} — total monede câștigate;
   \item \textbf{Productivity Insights} — ora cu cele mai multe sesiuni de focus completate.
 \end{enumerate}
 
+Față de versiunea inițială (care raporta doar șahul clasic), dashboard-ul a fost extins pentru
+a acoperi integral cele trei jocuri inteligente, progresul educațional și sistemul de niveluri.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{statistics_Screen.jpeg}
+\caption{Ecranul de statistici cu indicatorii de performanță ai utilizatorului.\label{fig:statistics}}
+\end{figure}
+
 \section{Ecranul de Realizări (AchievementsScreen)}
 
-Sistemul de realizări cuprinde \textbf{34 de realizări} organizate în 9 categorii:
-focus, șah clasic, Maia Chess, Sudoku, jurnal, monede, arcade, inventar, învățare.
+Sistemul de realizări cuprinde \textbf{42 de realizări} organizate în 12 categorii:
+focus, șah clasic, Maia Chess, Sudoku, jurnal, monede, arcade, inventar, învățare, examen
+simulat (\textit{quiz}), puzzle-uri și niveluri. Ultimele trei categorii au fost adăugate
+odată cu noile module de gamificare și educație. Ecranul de realizări este prezentat în
+Figura~\ref{fig:achievements}. Exemple din fiecare categorie sunt listate în
+Tabelul~\ref{tab:achievements}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{achievements_screen.jpeg}
+\caption{Ecranul de realizări cu insigne deblocate și progress per categorie.\label{fig:achievements}}
+\end{figure}
 
 \begin{table}[H]
 \centering
@@ -1136,9 +1405,27 @@ book-master & Book Master & Toate exercițiile rezolvate \\
 streak-keeper & Streak Keeper & Streak de $\geq 7$ zile \\
 completionist & Completionist & 78 obiecte (48 loot + 30 săbii) \\
 journaler & Journaler & 30 de intrări în jurnal \\
+quiz-ace & Top of the Class & Scor de 100\% la un examen simulat \\
+checkmate-virtuoso & Checkmate Virtuoso & 30 de puzzle-uri de șah rezolvate \\
+seasoned-adventurer & Seasoned Adventurer & Atingerea nivelului 10 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Mecanismul de deblocare automată}
+
+Spre deosebire de sistemele care necesită o verificare declanșată manual, deblocarea
+realizărilor în FocusQuest este complet automată. Un efect lateral (\texttt{useEffect})
+prevăzut cu un mecanism de \textit{debounce} de 500\,ms monitorizează modificările stării
+globale și reevaluează, la fiecare schimbare relevantă, condițiile tuturor celor 42 de
+realizări. Întârzierea de 500\,ms previne reevaluările redundante atunci când mai multe
+câmpuri ale stării se modifică în rafală — de exemplu, la finalizarea unei sesiuni de
+concentrare, care actualizează simultan monedele, streak-ul, totalul de minute și istoricul
+sesiunilor. În momentul în care numărul de realizări deblocate crește, aplicația oferă un
+feedback haptic prin vibrație (\texttt{Vibration.vibrate}), confirmând tactil progresul
+utilizatorului fără a întrerupe fluxul curent al interfeței. Această abordare reactivă
+garantează că o realizare este acordată imediat ce condiția sa este îndeplinită, indiferent
+de ecranul pe care se află utilizatorul în acel moment.
 
 \section{Ecranul de Inventar (InventoryScreen)}
 
@@ -1152,13 +1439,23 @@ Inventarul stochează obiectele câștigate din jocuri. Catalogul conține:
 
 Obiectele sunt acordate aleatoriu la finalizarea partidelor de șah pe dificultăți medii
 sau ridicate. Inventarul este afișat într-o grilă cu 3 coloane, sortată după data
-obținerii.
+obținerii, după cum se observă în Figura~\ref{fig:inventory}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{inventory_screen.jpeg}
+\caption{Ecranul de inventar cu obiectele colectate afișate în grilă.\label{fig:inventory}}
+\end{figure}
 
 \section{Modulul de Învățare (LearningHubScreen)}
 
 \subsection{Structura conținutului}
 
-Modulul de învățare oferă exerciții matematice structurate pe trei discipline:
+Modulul de învățare oferă un total de \textbf{673 de exerciții matematice} structurate pe
+trei discipline (Tabelul~\ref{tab:learning}): 338 de algebră, 246 de analiză și 89 de
+trigonometrie. Numărul de exerciții pe disciplină și totalul general sunt calculate
+\textbf{dinamic} la rulare din fișierele de conținut, astfel încât adăugarea de noi exerciții
+nu necesită modificarea codului.
 
 \begin{table}[H]
 \centering
@@ -1174,6 +1471,15 @@ Trigonometrie & Unghiuri, identități, ecuații, funcții & 100 monede & TG \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Interfața hub-ului de învățare cu cele trei discipline disponibile este prezentată în
+Figura~\ref{fig:learninghub}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{learning_hub_with_quiz.jpeg}
+\caption{Hub-ul de învățare cu cele trei discipline matematice și starea de deblocare a fiecăreia.\label{fig:learninghub}}
+\end{figure}
 
 Datele sunt stocate în fișiere JSON (\texttt{assets/learning/algebra.json},
 \texttt{analysis.json}, \texttt{trigonometry.json}) cu structura:
@@ -1198,8 +1504,29 @@ biblioteca KaTeX pentru randarea formulelor LaTeX. Caracteristici tehnice:
     \texttt{\textbackslash ctg}, \texttt{\textbackslash arctg}, \texttt{\textbackslash arcctg};
   \item Înălțimea WebView-ului se ajustează dinamic prin mesaje
     \texttt{postMessage} de la KaTeX;
-  \item Nu necesită conexiune la internet dacă KaTeX este bundled.
+  \item Biblioteca KaTeX este încărcată din CDN-ul public \texttt{jsdelivr}, ceea ce face ca
+    randarea formulelor să fie singura componentă a aplicației dependentă de conectivitate.
 \end{itemize}
+
+\subsubsection{Singura dependență de conectivitate}
+\label{sec:online-dependency}
+
+Spre deosebire de restul aplicației, componenta \texttt{MathRenderer} încarcă biblioteca
+KaTeX în mod dinamic dintr-o rețea de distribuție de conținut (CDN), motiv pentru care
+randarea formulelor matematice din modulul de învățare reprezintă \textbf{singura
+funcționalitate care necesită o conexiune activă la internet}. Această abordare a fost
+preferată în detrimentul împachetării locale a bibliotecii (\textit{bundling}) pentru a
+păstra dimensiunea pachetului aplicației redusă și pentru a beneficia de versiunea
+optimizată și cache-uită a CDN-ului. O direcție imediată de îmbunătățire (Capitolul~9)
+este împachetarea fișierelor KaTeX direct în resursele aplicației, ceea ce ar elimina
+și această ultimă dependență, transformând FocusQuest într-o aplicație complet
+funcțională \textit{offline}. Restul funcționalităților — inferența ONNX (ResNet-50 și
+Maia Chess), persistența datelor, jocurile, timer-ul de concentrare și sistemul de
+gamificare — operează în întregime local, fără niciun apel de rețea. Singura excepție
+parțială o constituie geolocalizarea: obținerea coordonatelor GPS este locală, însă
+transformarea acestora în denumirea localității (\textit{reverse geocoding}) folosește
+serviciul Nominatim; în absența conexiunii, această etapă eșuează elegant, sesiunea
+fiind salvată cu coordonatele numerice brute, fără a bloca funcționalitatea.
 
 \subsection{Fluxul de rezolvare a exercițiilor}
 
@@ -1212,6 +1539,70 @@ biblioteca KaTeX pentru randarea formulelor LaTeX. Caracteristici tehnice:
     \texttt{learning.solvedExercises};
   \item Utilizatorul poate afișa soluția pas-cu-pas independent de răspuns.
 \end{enumerate}
+
+În Figura~\ref{fig:exercise} și Figura~\ref{fig:exercisesol} sunt prezentate
+ecranul unui exercițiu în așteptarea răspunsului, respectiv același exercițiu
+cu soluția pas-cu-pas afișată.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.44\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{learning_Screen_exercise.jpeg}
+  \caption{Exercițiu cu variantele de răspuns.\label{fig:exercise}}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.44\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{learning_screen_exercise_with_solution.jpeg}
+  \caption{Același exercițiu cu soluția desfășurată.\label{fig:exercisesol}}
+\end{subfigure}
+\caption{Fluxul de rezolvare a unui exercițiu matematic în modulul de învățare FocusQuest.}
+\end{figure}
+
+\section{Examenul simulat (QuizScreen)}
+
+Pe lângă practica liberă de exerciții, modulul de învățare include un mod de \textbf{examen
+simulat} (\textit{mock exam}), inspirat de structura probelor de admitere de tip grilă.
+La fiecare examen, aplicația extrage aleatoriu \textbf{12 întrebări} — câte \textbf{4 din
+fiecare disciplină} (algebră, analiză, trigonometrie) — și le amestecă, astfel încât
+disciplinele să se intercaleze.
+
+% TODO: captură de ecran QuizScreen (întrebare + variante de răspuns)
+% \begin{figure}[H]\centering\includegraphics[width=0.45\textwidth]{quiz_screen.jpeg}
+% \caption{Ecranul de examen simulat.\label{fig:quiz}}\end{figure}
+
+Fluxul unui examen:
+\begin{enumerate}
+  \item Utilizatorul selectează un răspuns; se afișează imediat \textit{feedback} vizual și
+    sonor (corect/greșit) și se trece la întrebarea următoare;
+  \item La final, un ecran de rezultate prezintă scorul (de exemplu $9/12$), procentajul,
+    monedele și XP-ul câștigate;
+  \item Răspunsurile greșite pot fi revizuite, fiecare împreună cu varianta corectă, randate
+    cu \texttt{MathRenderer}.
+\end{enumerate}
+
+Recompensele sunt proporționale cu performanța: \textbf{5 monede} și \textbf{10 XP} pentru
+fiecare răspuns corect, plus un bonus de \textbf{20 de monede} pentru un scor perfect.
+Întrebările răspunse corect sunt totodată marcate ca rezolvate în progresul de învățare,
+contribuind la realizările de tip \textit{scholar}. Refolosirea componentei \texttt{MathRenderer}
+asigură afișarea consecventă a formulelor matematice atât în practica liberă, cât și în examen.
+
+\section{Sistemul de efecte sonore}
+\label{sec:sfx}
+
+Aplicația oferă \textbf{efecte sonore} scurte de tip \textit{chiptune} (8-bit), potrivite
+esteticii retro-arcade, pentru momentele-cheie de interacțiune: monedă câștigată, răspuns
+corect, răspuns greșit, victorie și avansare în nivel. Spre deosebire de muzica de fundal
+(fișiere lo-fi externe), efectele sonore au fost \textbf{sintetizate programatic} ca fișiere
+WAV (unde pătrate și sinusoidale cu anvelope scurte), ceea ce elimină orice problemă de
+licențiere și menține dimensiunea totală sub 80\,KB.
+
+Redarea este gestionată de un serviciu de tip \textit{singleton} (\texttt{src/services/SoundEffects.ts})
+care preîncarcă efectele prin \texttt{react-native-sound} și respectă preferința utilizatorului
+(comutatorul \texttt{soundEffectsEnabled} din starea globală). Efectele sunt declanșate din
+locurile relevante: răspunsurile la exerciții și examene, revendicarea quest-urilor, deblocarea
+realizărilor și avansarea în nivel.
 
 % ============================================================
 %  CAPITOLUL 7 – INTEGRAREA MODELELOR DE INTELIGENȚĂ ARTIFICIALĂ
@@ -1241,11 +1632,11 @@ Modelele sunt incluse ca resurse statice ale aplicației:
 
 \subsection{Descriere model}
 
-\textbf{ResNet-50} (Residual Network cu 50 de straturi) este o arhitectură CNN
+\textbf{ResNet-50}~\cite{resnet} (Residual Network cu 50 de straturi) este o arhitectură CNN
 (Convolutional Neural Network) dezvoltată de Microsoft Research, câștigătoare a
-competiției ImageNet Large Scale Visual Recognition Challenge (ILSVRC) 2015.
+competiției ImageNet~\cite{imageNet} Large Scale Visual Recognition Challenge (ILSVRC) 2015.
 
-Versiunea utilizată este \textbf{ResNet-50-v1-7 quantizat INT8} din ONNX Model Zoo,
+Versiunea utilizată este \textbf{ResNet-50-v1-7 quantizat INT8} din ONNX Model Zoo~\cite{onnxmodelzoo},
 cu dimensiune redusă față de versiunea float32 originală. Modelul clasifică imaginile
 în \textbf{1000 de clase ImageNet}.
 
@@ -1300,21 +1691,37 @@ function preprocessImage(base64: string): Tensor {
 \subsection{Funcția softmax și selectarea predicțiilor}
 
 Logit-urile de ieșire ale modelului sunt transformate în probabilități prin funcția
-softmax numerică stabilă:
+softmax numerică stabilă (Ecuația~\ref{eq:softmax}):
 \begin{equation}
   \text{softmax}(z_i) = \frac{e^{z_i - \max(\mathbf{z})}}{\sum_{j=1}^{K} e^{z_j - \max(\mathbf{z})}}
   \label{eq:softmax}
 \end{equation}
 
 Predicțiile sunt sortate descendent după probabilitate și returnate primele K (implicit $K=3$).
+Etichetele textuale corespunzătoare indicilor de clasă sunt extrase din fișierul
+\texttt{classes.json}, care conține denumirile celor 1000 de clase ImageNet.
+
+\subsection{Integrarea în fluxul jurnalului}
+
+În contextul modulului de jurnal, rezultatul clasificării nu este impus utilizatorului, ci
+oferit ca \textbf{sugestie}. La selectarea unei imagini din galerie sau de la cameră,
+imaginea este convertită în Base64, decodificată, preprocesată și transmisă modelului, iar
+primele trei etichete cu probabilitatea cea mai mare sunt propuse ca posibil titlu al
+intrării de jurnal. Utilizatorul poate accepta una dintre sugestii printr-o singură atingere
+sau poate ignora complet propunerile și introduce manual un titlu. Această proiectare
+păstrează controlul deplin al utilizatorului asupra conținutului, folosind modelul AI ca
+instrument de asistență, nu ca mecanism de etichetare automată obligatorie. În eventualitatea
+unei erori de inferență sau a unei imagini ce nu poate fi decodificată, fluxul de creare a
+intrării continuă neîntrerupt, fără sugestii, evitând blocarea interfeței.
 
 \section{Modelul Maia Chess pentru jocul de șah cu AI}
 
 \subsection{Descriere model Maia Chess}
 
-\textbf{Maia Chess} este un proiect de cercetare open-source al Universității Cornell
+\textbf{Maia Chess}~\cite{maiacChess} este un proiect de cercetare open-source al Universității Cornell
 (Reid McIlroy-Young et al., 2020) care antrenează rețele neuronale să joace șah imitând
-stilul uman la diverse niveluri Elo. Spre deosebire de motoarele tradiționale (Stockfish,
+stilul uman la diverse niveluri Elo. Codul sursă și modelele sunt disponibile pe
+GitHub~\cite{maiaGitHub}. Spre deosebire de motoarele tradiționale (Stockfish,
 Leela Chess Zero) care maximizează forța de joc, Maia optimizează \textit{acordul cu
 mutările umane} la un Elo dat.
 
@@ -1343,7 +1750,8 @@ Modelul Maia are \textbf{3 intrări}:
 
 \subsection{Codificarea stării tablei (18 canale)}
 
-Starea tablei este codificată ca un tensor 3D cu 18 canale binare:
+Starea tablei este codificată ca un tensor 3D cu 18 canale binare,
+descrise în Tabelul~\ref{tab:maia_channels}:
 
 \begin{table}[H]
 \centering
@@ -1408,6 +1816,8 @@ return movesWithProbs[0].move; // Mutarea cu probabilitate maxima
 
 \subsection{Niveluri de dificultate Maia}
 
+Cele trei niveluri de dificultate disponibile sunt prezentate în Tabelul~\ref{tab:maia_diff}.
+
 \begin{table}[H]
 \centering
 \caption{Niveluri de dificultate Maia Chess}
@@ -1423,13 +1833,35 @@ Master (Hard) & $\sim$1500 & 100 monede & 50 monede \\
 \end{tabular}
 \end{table}
 
-\textbf{Perspectiva jucătorului:} în implementare, jucătorul controlează întotdeauna
-piesele \textbf{albe}, iar Maia joacă piesele \textbf{negre}. ELO-ul jucătorului
-este setat la valoarea fixă de \textbf{1600} (\texttt{elo\_oppo = 1600}) în codul
-sursă, indiferent de nivelul real al utilizatorului. Acest parametru influențează
-distribuția de probabilitate a mutărilor modelului Maia: la un \texttt{elo\_oppo}
-ridicat, modelul va tinde să aleagă mutări mai solide, adaptându-și stilul ca și
-cum ar juca împotriva unui jucător de nivel intermediar-avansat.
+\textbf{Perspectiva jucătorului:} implicit, jucătorul controlează piesele \textbf{albe},
+iar Maia joacă piesele \textbf{negre}. ELO-ul jucătorului este setat la valoarea fixă de
+\textbf{1600} (\texttt{elo\_oppo = 1600}) în codul sursă, indiferent de nivelul real al
+utilizatorului. Acest parametru influențează distribuția de probabilitate a mutărilor
+modelului Maia: la un \texttt{elo\_oppo} ridicat, modelul va tinde să aleagă mutări mai
+solide, adaptându-și stilul ca și cum ar juca împotriva unui jucător de nivel
+intermediar-avansat.
+
+\subsection{Jocul cu piesele negre}
+\label{sec:play-black}
+
+Atât în modul Maia, cât și în șahul clasic, jucătorul poate alege să joace cu piesele
+\textbf{negre} printr-un buton de inversare (\textit{flip}). În acest caz tabla este rotită
+(prin proprietatea \texttt{orientation} a componentei \texttt{ChessBoard}), iar AI-ul preia
+piesele albe și mută primul. Modelul Maia nu necesită antrenare separată pentru a juca cu
+albul: tehnica de oglindire FEN descrisă anterior aduce întotdeauna poziția în perspectiva
+albului înainte de inferență, deci motorul funcționează identic indiferent de culoarea
+jucată. Pentru șahul clasic, funcția de evaluare a fost generalizată astfel încât scorul să
+fie calculat din perspectiva culorii controlate de AI (maximizare pentru alb, respectiv
+pentru negru).
+
+Interfața vizuală a partidei de șah contra modelului Maia este ilustrată în
+Figura~\ref{fig:chess}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{chess_with_ai.jpeg}
+\caption{Partida de șah contra modelului Maia Chess cu tabla de joc în stil retro-neon.\label{fig:chess}}
+\end{figure}
 
 \subsection{Cartea de deschideri}
 
@@ -1452,11 +1884,25 @@ preia controlul. Deschiderile disponibile sunt:
   \item Configurația Indiană de Rege (\textit{King's Indian Setup}).
 \end{itemize}
 
+Motivația cărții de deschideri este dublă: pe de o parte introduce \textbf{varietate}
+(altfel modelul ar repeta aproape aceleași mutări în deschidere), iar pe de altă parte
+evită predicțiile instabile ale rețelei în primele mutări, când poziția este aproape
+simetrică.
+
+Atunci când jucătorul alege piesele negre (Secțiunea~\ref{sec:play-black}), Maia joacă cu
+albul și folosește o \textbf{a doua carte de deschideri}, de data aceasta cu deschideri de
+alb (de exemplu \textit{King's Knight}, \textit{Queen's Gambit}, \textit{English Opening},
+\textit{Réti}, \textit{London System}). A doua mutare din fiecare deschidere de alb a fost
+aleasă astfel încât să rămână legală indiferent de răspunsul negrului — proprietate
+verificată automat cu \texttt{chess.js} pentru toate combinațiile, pentru a garanta că AI-ul
+nu recurge niciodată la o mutare aleatoare de rezervă în deschidere.
+
 \section{Jocul de Șah Clasic (NeonChessArena)}
 
 Pe lângă Maia Chess, aplicația include un joc de șah clasic denumit \textbf{Cosmic Chess
 Gauntlet} (componenta \texttt{NeonChessArena}). Motorul AI este implementat cu o funcție
-de evaluare bazată pe valoarea materialului fiecărei piese:
+de evaluare bazată pe valoarea materialului fiecărei piese, utilizând algoritmul
+minimax~\cite{minimax}:
 
 \begin{itemize}
   \item \textbf{Easy} — mutare aleatoare din lista mutărilor legale;
@@ -1469,7 +1915,8 @@ de evaluare bazată pe valoarea materialului fiecărei piese:
 Funcția de evaluare calculează suma valorilor pieselor rămase pe tablă
 (pion=1, cal/nebun=3, tură=5, regină=9), din perspectiva culorii albe.
 
-Dificultățile mai ridicate se deblochează automat pe baza victoriilor acumulate:
+Dificultățile mai ridicate se deblochează automat pe baza victoriilor acumulate,
+conform Tabelului~\ref{tab:chess_rewards}:
 
 \begin{table}[H]
 \centering
@@ -1482,6 +1929,65 @@ Dificultățile mai ridicate se deblochează automat pe baza victoriilor acumula
 Easy & Disponibil inițial & 12 monede \\
 Normal & 3 victorii pe Easy & 24 monede + obiect inventar \\
 Hard & 10 victorii pe Normal & 40 monede + obiect inventar \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Puzzle-uri de șah tactice (mat în $N$ mutări)}
+\label{sec:puzzles}
+
+Pe lângă partidele complete, aplicația include un modul de \textbf{puzzle-uri tactice}
+(\texttt{PuzzleScreen}), în care utilizatorul trebuie să găsească secvența de mat forțat
+dintr-o poziție dată. Puzzle-urile sunt selecte din colecția publică \textit{wtharvey.com}
+și acoperă trei niveluri de dificultate: \textbf{mat în 2}, \textbf{mat în 3} și
+\textbf{mat în 4} mutări (Tabelul~\ref{tab:puzzle_rewards}). Un puzzle este prezentat
+aleatoriu la fiecare deschidere a ecranului și la apăsarea butoanelor \textit{Next}/\textit{Skip}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{puzzle_screen.jpeg}
+\caption{Ecranul de puzzle-uri de șah, cu o poziție de mat de rezolvat.\label{fig:puzzle}}
+\end{figure}
+
+\subsection{Pregătirea și validarea offline a puzzle-urilor}
+
+Fișierele sursă conțin, pentru fiecare puzzle, o descriere, poziția în format FEN și soluția
+în notație algebrică standard (SAN). Un script offline procesează aceste fișiere și produce
+un fișier JSON compact (aproximativ 39\,KB pentru 70 de puzzle-uri) inclus în aplicație.
+Pentru fiecare candidat, scriptul:
+\begin{enumerate}
+  \item normalizează câmpul FEN (numărul mutării este corectat la o valoare validă);
+  \item rejoacă întreaga soluție cu \texttt{chess.js}, convertind fiecare mutare în format
+    UCI;
+  \item verifică faptul că secvența se termină efectiv în \textbf{șah-mat} și că adâncimea
+    coincide cu cea declarată (mat în $N$);
+  \item elimină puzzle-urile cu sub-promovări (promovare în altă piesă decât regina), pe care
+    interfața curentă nu le poate exprima.
+\end{enumerate}
+Astfel, fiecare puzzle livrat este garantat \textbf{corect și solvabil}, validarea fiind
+făcută complet \textit{offline}, fără un motor de șah extern.
+
+\subsection{Mecanica de rezolvare}
+
+Rezolvarea urmează \textbf{linia principală} a soluției validate: utilizatorul execută
+mutarea așteptată, iar aplicația joacă automat răspunsul adversarului din soluție și continuă
+până la mat, actualizând indicatorul ``mat în $N$''. O mutare legală dar greșită este
+respinsă (cu \textit{feedback} sonor) și permite reîncercarea; o mutare care dă \emph{direct}
+mat este de asemenea acceptată. Tabla se orientează automat după culoarea aflată la mutare,
+iar butonul \textit{Hint} afișează mutarea corectă următoare. Recompensele cresc cu
+dificultatea (Tabelul~\ref{tab:puzzle_rewards}), fiind acordate o singură dată per puzzle.
+
+\begin{table}[H]
+\centering
+\caption{Recompensele puzzle-urilor de șah}
+\label{tab:puzzle_rewards}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Dificultate} & \textbf{Număr puzzle-uri} & \textbf{Recompensă} \\
+\midrule
+Mat în 2 & 25 & 15 monede + 25 XP \\
+Mat în 3 & 25 & 25 monede + 25 XP \\
+Mat în 4 & 20 & 35 monede + 25 XP \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1580,7 +2086,24 @@ Corectitudinea integrării Maia Chess a fost validată prin:
     inițializarea modulului.
 \end{itemize}
 
+\section{Validarea offline a datelor de joc}
 
+O parte din conținutul aplicației este validat \textbf{algoritmic, în avans}, în loc să fie
+verificat manual, ceea ce crește încrederea în corectitudine:
+\begin{itemize}
+  \item \textbf{Puzzle-urile de șah} — fiecare poziție și soluție din colecția importată este
+    rejucată cu \texttt{chess.js}, iar puzzle-ul este păstrat doar dacă secvența se termină în
+    șah-mat la adâncimea declarată (Secțiunea~\ref{sec:puzzles}); puzzle-urile invalide sau cu
+    sub-promovări sunt eliminate automat.
+  \item \textbf{Cartea de deschideri de alb} — pentru fiecare deschidere, legalitatea celei
+    de-a doua mutări a fost verificată împotriva unui set variat de răspunsuri ale negrului,
+    garantând că AI-ul nu ajunge niciodată într-o mutare ilegală în deschidere.
+  \item \textbf{Conținutul de învățare} — la importul exercițiilor au fost verificate
+    integritatea câmpurilor, potrivirea răspunsului corect cu una dintre variante și unicitatea
+    identificatorilor.
+\end{itemize}
+Aceste verificări sunt rulate la pregătirea datelor (\textit{build-time}), astfel încât
+aplicația livrată conține doar conținut validat.
 
 % ============================================================
 %  CAPITOLUL 9 – CONCLUZII ȘI DIRECȚII VIITOARE
@@ -1606,11 +2129,15 @@ Principalele realizări tehnice ale proiectului sunt:
     maparea Elo la categorii și selecția mutărilor prin softmax pe mutările legale.
 
   \item \textbf{Un sistem de gamificare complet și coerent} — cu economie virtuală
-    (monede), deblocarea progresivă a conținutului, 34 de realizări, inventar cu 78 de
+    (monede), experiență (XP) și niveluri progresive, quest-uri zilnice, efecte sonore,
+    deblocarea progresivă a conținutului, 42 de realizări, inventar cu 78 de
     obiecte și animații RPG.
 
-  \item \textbf{Un modul educațional funcțional} — cu exerciții matematice reale,
-    randare matematică cu KaTeX şi sistem de progres persistent.
+  \item \textbf{Un modul educațional funcțional} — cu 673 de exerciții matematice reale,
+    un mod de examen simulat, randare matematică cu KaTeX şi sistem de progres persistent.
+
+  \item \textbf{Un modul de puzzle-uri de șah tactice} — cu 70 de probleme de tip mat în
+    2--4 mutări validate algoritmic și un mecanism de rezolvare pe linia principală.
 
   \item \textbf{O arhitectură solidă} — bazată pe React Context + useReducer cu
     persistență AsyncStorage, TypeScript strict și navigare tipizată.
@@ -1620,11 +2147,43 @@ Aplicația demonstrează că un singur dezvoltator poate construi, în cadrul un
 de licență, o aplicație mobilă funcțională și complexă care integrează modele de
 machine learning \textit{on-device}, fără a depinde de infrastructură cloud.
 
+\section{Limitări curente}
+
+În forma sa actuală, aplicația prezintă câteva limitări asumate, identificate pe parcursul
+dezvoltării și testării:
+\begin{itemize}
+  \item \textbf{Dependența de internet pentru randarea matematică} — biblioteca KaTeX este
+    încărcată din CDN, ceea ce face ca modulul de învățare să necesite o conexiune activă
+    pentru afișarea corectă a formulelor; restul aplicației funcționează \textit{offline}.
+  \item \textbf{Suport audio limitat la Android} — muzica de fundal este redată din resursele
+    native Android (\texttt{res/raw}); portarea completă pe iOS necesită includerea
+    fișierelor în bundle-ul corespunzător.
+  \item \textbf{ELO fix al jucătorului în Maia Chess} — parametrul \texttt{elo\_oppo} este
+    fixat la 1600, indiferent de nivelul real al utilizatorului, ceea ce menține constant
+    stilul adaptiv al adversarului AI.
+  \item \textbf{Acoperirea parțială a testării automate} — validarea s-a bazat preponderent
+    pe testare manuală pe dispozitiv fizic și emulator, completată de un test unitar de
+    randare și de verificări de integritate în cod.
+\end{itemize}
+Aceste limitări nu afectează funcționalitatea de bază a aplicației și constituie puncte de
+plecare naturale pentru direcțiile viitoare de dezvoltare prezentate în continuare.
+
 \section{Direcții viitoare de dezvoltare}
 
 \subsection{Extinderea conținutului educațional}
 Adăugarea de noi discipline (fizică mecanică, chimie organică, informatică) cu seturi
 suplimentare de exerciții matematice şi ştiințifice.
+
+\subsection{Repetiție spațiată (spaced repetition)}
+Introducerea unui algoritm de repetiție spațiată (de exemplu SM-2 sau sistemul Leitner)
+pentru a reprograma automat exercițiile și intrările de jurnal greșite sau dificile la
+intervale crescătoare, valorificând câmpul \texttt{lastReviewedAt} deja prezent în model
+și maximizând retenția pe termen lung.
+
+\subsection{Rating adaptiv al jucătorului}
+Înlocuirea parametrului fix \texttt{elo\_oppo = 1600} cu un rating al jucătorului calculat
+adaptiv (de exemplu prin sistemul Glicko-2) pe baza rezultatelor împotriva nivelurilor Maia,
+oferind atât o adversitate mai realistă, cât și un indicator de progres suplimentar.
 
 \subsection{Sincronizare cloud opțională}
 Implementarea unui backend opțional (Firebase / Supabase) pentru sincronizarea
@@ -1639,7 +2198,7 @@ Fine-tuning al modelului ResNet pe un set de date mai relevant contextului educa
 (ex. recunoașterea tipurilor de probleme matematice din fotografii de caiete).
 
 \subsection{Notificări push}
-Implementarea notificărilor zilnice de reamintire a streak-ului de focalizare și a
+Implementarea notificărilor zilnice de reamintire a streak-ului de concentrare și a
 exercițiilor de rezolvat.
 
 \subsection{Suport iOS complet}
@@ -1764,215 +2323,5 @@ International Journal of Computer Science and Engineering, 2013.
 
 \end{thebibliography}
 
-% ============================================================
-%  ANEXA A – Lista completă a stărilor și acțiunilor
-% ============================================================
-\appendix
-\addcontentsline{toc}{chapter}{Anexe}
-\chapter{Lista completă a acțiunilor din Reducer}
-
-\begin{longtable}{>{\ttfamily}p{5.5cm} p{8cm}}
-\caption{Toate acțiunile gestionarului de stare}
-\label{tab:actions}\\
-\toprule
-\normalfont\textbf{Tip acțiune} & \textbf{Efect} \\
-\midrule
-\endfirsthead
-\toprule
-\normalfont\textbf{Tip acțiune} & \textbf{Efect} \\
-\midrule
-\endhead
-\bottomrule
-\endfoot
-SET\_PROFILE\_NAME & Actualizează numele profilului \\
-COMPLETE\_SESSION & Finalizează sesiune focus, acordă monede, actualizează streak \\
-ADD\_FLASHCARD & Adaugă intrare nouă în jurnal \\
-UPDATE\_FLASHCARD & Actualizează o intrare de jurnal existentă \\
-DELETE\_FLASHCARD & Șterge o intrare de jurnal \\
-TOGGLE\_FLASHCARD\_FAVORITE & Comută starea de favorit a unui flashcard \\
-RECORD\_ARCADE\_SCORE & Salvează scorul din mini-jocuri \\
-SPEND\_COINS & Scade monedele pentru achiziții \\
-UNLOCK\_SKIN & Deblochează un skin de personaj \\
-SET\_ACTIVE\_SKIN & Setează skin-ul activ \\
-COMPLETE\_CHESS\_GAME & Înregistrează rezultat șah clasic \\
-COMPLETE\_MAIA\_CHESS\_GAME & Înregistrează rezultat Maia Chess \\
-UNLOCK\_MAIA\_DIFFICULTY & Deblochează nivel dificultate Maia \\
-COMPLETE\_SUDOKU\_GAME & Înregistrează rezultat Sudoku \\
-UNLOCK\_SUDOKU\_DIFFICULTY & Deblochează nivel dificultate Sudoku \\
-UNLOCK\_ACHIEVEMENT & Deblochează o realizare \\
-TOGGLE\_MUSIC & Activează/dezactivează muzica \\
-TOGGLE\_SOUND\_EFFECTS & Activează/dezactivează efectele sonore \\
-UNLOCK\_SUBJECT & Deblochează o disciplină de învățare \\
-MARK\_EXERCISE\_SOLVED & Marchează un exercițiu ca rezolvat \\
-HYDRATE & Restaurează starea din AsyncStorage \\
-\bottomrule
-\end{longtable}
-
-\chapter{Catalogul complet al obiectelor din inventar}
-
-\section{Obiecte de tip Loot (48 de obiecte)}
-
-\begin{longtable}{lll}
-\caption{Catalogul obiectelor de tip Loot}
-\label{tab:loot}\\
-\toprule
-\textbf{ID} & \textbf{Nume} & \textbf{Tip} \\
-\midrule
-\endfirsthead
-\toprule
-\textbf{ID} & \textbf{Nume} & \textbf{Tip} \\
-\midrule
-\endhead
-\bottomrule
-\endfoot
-loot-01 & Crystal Cache & loot \\
-loot-02 & Mystic Pouch & loot \\
-loot-03 & Starlit Rune & loot \\
-loot-04 & Ancient Scroll & loot \\
-loot-05 & Neon Elixir & loot \\
-loot-06 & Dragon Scale & loot \\
-loot-07 & Phoenix Feather & loot \\
-loot-08 & Clockwork Relic & loot \\
-loot-09 & Soul Crystal & loot \\
-loot-10 & Enchanted Ring & loot \\
-loot-11 & Void Stone & loot \\
-loot-12 & Aurora Gem & loot \\
-loot-13 & Lunar Pendant & loot \\
-loot-14 & Thunder Orb & loot \\
-loot-15 & Synthwave Idol & loot \\
-loot-16 & Frost Shard & loot \\
-loot-17 & Shadow Essence & loot \\
-loot-18 & Glitch Totem & loot \\
-loot-19 & Cosmic Dust & loot \\
-loot-20 & Ember Core & loot \\
-loot-21 & Prism Flask & loot \\
-loot-22 & Stardust Vial & loot \\
-loot-23 & Plasma Cell & loot \\
-loot-24 & Arcade Relic & loot \\
-loot-25 & Neon Sigil & loot \\
-loot-26 & Cyber Fragment & loot \\
-loot-27 & Chrono Core & loot \\
-loot-28 & Void Essence & loot \\
-loot-29 & Astral Gem & loot \\
-loot-30 & Digital Shard & loot \\
-loot-31 & Quantum Cube & loot \\
-loot-32 & Starbound Sigil & loot \\
-loot-33 & Ether Bottle & loot \\
-loot-34 & Rune Tablet & loot \\
-loot-35 & Spirit Stone & loot \\
-loot-36 & Mythic Battery & loot \\
-loot-37 & Eclipse Pearl & loot \\
-loot-38 & Titan Relic & loot \\
-loot-39 & Nebula Fragment & loot \\
-loot-40 & Temporal Gear & loot \\
-loot-41 & Chaos Orb & loot \\
-loot-42 & Infinity Crystal & loot \\
-loot-43 & Arcane Codex & loot \\
-loot-44 & Nova Compass & loot \\
-loot-45 & Flux Capacitor & loot \\
-loot-46 & Gravity Well & loot \\
-loot-47 & Photon Sphere & loot \\
-loot-48 & Celestial Key & loot \\
-\bottomrule
-\end{longtable}
-
-\section{Arme de tip Sword (30 de obiecte)}
-
-\begin{longtable}{lll}
-\caption{Catalogul armelor de tip Sword}
-\label{tab:swords}\\
-\toprule
-\textbf{ID} & \textbf{Nume} & \textbf{Tip} \\
-\midrule
-\endfirsthead
-\toprule
-\textbf{ID} & \textbf{Nume} & \textbf{Tip} \\
-\midrule
-\endhead
-\bottomrule
-\endfoot
-sword-01 & Bronze Halberd & sword \\
-sword-02 & Iron Cleaver & sword \\
-sword-03 & Frostbite Saber & sword \\
-sword-04 & Shadow Dagger & sword \\
-sword-05 & Aurora Blade & sword \\
-sword-06 & Thunder Lance & sword \\
-sword-07 & Glitch Dagger & sword \\
-sword-08 & Crimson Edge & sword \\
-sword-09 & Quantum Claymore & sword \\
-sword-10 & Void Scythe & sword \\
-sword-11 & Solar Katana & sword \\
-sword-12 & Lunar Sickle & sword \\
-sword-13 & Nebula Spear & sword \\
-sword-14 & Plasma Axe & sword \\
-sword-15 & Vortex Cleaver & sword \\
-sword-16 & Storm Blade & sword \\
-sword-17 & Circuit Rapier & sword \\
-sword-18 & Inferno Sword & sword \\
-sword-19 & Ion Lance & sword \\
-sword-20 & Dragon Fang & sword \\
-sword-21 & Cyber Halberd & sword \\
-sword-22 & Frost Reaper & sword \\
-sword-23 & Stellar Glaive & sword \\
-sword-24 & Demon Cleaver & sword \\
-sword-25 & Photon Blade & sword \\
-sword-26 & Titan Hammer & sword \\
-sword-27 & Pulse Greatsword & sword \\
-sword-28 & Shadow Reaver & sword \\
-sword-29 & Cosmic Blade & sword \\
-sword-30 & Nova Edge & sword \\
-\bottomrule
-\end{longtable}
-
-\chapter{Lista completă a realizărilor (34 de realizări)}
-
-\begin{longtable}{llll}
-\caption{Toate realizările disponibile în aplicație}
-\label{tab:all_achievements}\\
-\toprule
-\textbf{ID} & \textbf{Titlu} & \textbf{Categorie} & \textbf{Condiție} \\
-\midrule
-\endfirsthead
-\toprule
-\textbf{ID} & \textbf{Titlu} & \textbf{Categorie} & \textbf{Condiție} \\
-\midrule
-\endhead
-\bottomrule
-\endfoot
-first-session & First Focus & focus & 1 sesiune completată \\
-night-owl & Night Owl & focus & 10 sesiuni după ora 22 \\
-early-bird & Early Bird & focus & 10 sesiuni înainte de ora 8 \\
-marathon-runner & Marathon Runner & focus & Sesiune $\geq 90$ min \\
-chess-beginner & Chess Beginner & chess & 5 victorii la șah \\
-chess-master & Chess Master & chess & 10 victorii pe Hard \\
-chess-legend & Chess Legend & chess & 50 victorii totale \\
-maia-apprentice & AI Apprentice & maia & 1 victorie Maia Easy \\
-maia-challenger & AI Challenger & maia & 5 victorii Maia \\
-maia-champion & AI Champion & maia & 1 victorie Maia Hard \\
-ai-slayer & AI Slayer & maia & 20 victorii Maia totale \\
-sudoku-starter & Sudoku Starter & sudoku & 5 puzzle-uri Easy \\
-sudoku-novice & Sudoku Novice & sudoku & 1 puzzle completat \\
-sudoku-expert & Sudoku Expert & sudoku & 10 puzzle-uri totale \\
-puzzle-master & Puzzle Master & sudoku & 25 puzzle-uri totale \\
-journaler & Journaler & journal & 30 de intrări în jurnal \\
-mood-explorer & Mood Explorer & journal & 5 stări emoționale distincte \\
-streak-keeper & Streak Keeper & focus & Streak $\geq 7$ zile \\
-coin-collector & Coin Collector & coins & 1.000 monede câștigate \\
-lane-apprentice & Lane Apprentice & arcade & Scor Lanes $\geq 100$ \\
-lane-expert & Lane Expert & arcade & Scor Lanes $\geq 200$ \\
-lane-master & Lane Master & arcade & Scor Lanes $\geq 400$ \\
-reaction-novice & Reaction Novice & arcade & Scor Reaction $\geq 360$ \\
-reaction-expert & Reaction Expert & arcade & Scor Reaction $\geq 600$ \\
-reaction-legend & Reaction Legend & arcade & Scor Reaction $\geq 900$ \\
-arcade-champion & Arcade Champion & arcade & Lanes $\geq 400$ \textbf{și} Reaction $\geq 900$ \\
-treasure-hunter & Treasure Hunter & inventory & 10 obiecte Loot \\
-arsenal-master & Arsenal Master & inventory & 15 arme Sword \\
-completionist & Completionist & inventory & 78 obiecte totale (48 loot + 30 săbii) \\
-algebra-scholar & Algebra Scholar & learning & Toate exercițiile Algebră \\
-analysis-scholar & Analysis Scholar & learning & Toate exercițiile Analiză \\
-trig-scholar & Trig Scholar & learning & Toate exercițiile Trigonometrie \\
-book-master & Book Master & learning & Toate exercițiile (toate disciplinele) \\
-\bottomrule
-\end{longtable}
 
 \end{document}

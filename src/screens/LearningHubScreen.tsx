@@ -133,6 +133,17 @@ export function LearningHubScreen() {
         </Text>
       </View>
 
+      <Pressable style={styles.examCard} onPress={() => navigation.navigate('Quiz')}>
+        <Text style={styles.examIcon}>📝</Text>
+        <View style={styles.examInfo}>
+          <Text style={styles.examTitle}>Mock Exam</Text>
+          <Text style={styles.examSubtitle}>
+            12 questions · 4 from each subject · earn coins & XP
+          </Text>
+        </View>
+        <Text style={styles.examChevron}>›</Text>
+      </Pressable>
+
       {SUBJECTS.map(subject => {
         const isUnlocked = learning.unlockedSubjects.includes(subject.id);
         const solved = learning.solvedExercises.filter(id =>
@@ -268,6 +279,37 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 13,
     lineHeight: 20,
+  },
+  examCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#1a1033',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: palette.electricPurple + '66',
+  },
+  examIcon: {
+    fontSize: 28,
+  },
+  examInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  examTitle: {
+    color: palette.electricPurple,
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  examSubtitle: {
+    color: '#9ca3af',
+    fontSize: 12,
+  },
+  examChevron: {
+    color: palette.electricPurple,
+    fontSize: 28,
+    fontWeight: '300',
   },
   subjectCard: {
     backgroundColor: '#111c35',

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   FlatList,
+  ListRenderItemInfo,
   Pressable,
   StyleSheet,
   Text,
@@ -8,13 +9,52 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useGame, LearningSubject } from '../context/GameContext';
+import { useGame } from '../context/GameContext';
 import { LEARNING_CONTENT, LEARNING_SUBJECT_META } from '../constants/learningContent';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { palette } from '../theme/colors';
 
 type RouteProps = RouteProp<RootStackParamList, 'ExerciseList'>;
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
+
+type ExerciseRowData = {
+  id: string;
+  index: number;
+  solved: boolean;
+  optionCount: number;
+};
+
+const Separator = () => <View style={styles.separator} />;
+
+const ExerciseRow = React.memo(function ExerciseRow({
+  item,
+  color,
+  onPress,
+}: {
+  item: ExerciseRowData;
+  color: string;
+  onPress: (id: string) => void;
+}) {
+  return (
+    <Pressable
+      style={[styles.exerciseRow, item.solved && styles.exerciseSolved]}
+      onPress={() => onPress(item.id)}
+    >
+      <View style={[styles.numberBadge, { backgroundColor: item.solved ? '#16a34a' : color + '33' }]}>
+        <Text style={[styles.numberText, { color: item.solved ? '#fff' : color }]}>
+          {item.index + 1}
+        </Text>
+      </View>
+      <View style={styles.exerciseContent}>
+        <Text style={styles.exercisePreview}>Problem {item.index + 1}</Text>
+        <Text style={[styles.exerciseStatus, { color: item.solved ? '#4ade80' : '#64748b' }]}>
+          {item.solved ? '✅ Solved' : `${item.optionCount} options`}
+        </Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+});
 
 export function ExerciseListScreen() {
   const route = useRoute<RouteProps>();
@@ -25,13 +65,36 @@ export function ExerciseListScreen() {
   const data = LEARNING_CONTENT[subject];
   const color = LEARNING_SUBJECT_META[subject].color;
 
-  const exercises = data.exercises.map((ex, i) => ({
-    ...ex,
-    index: i,
-    solved: learning.solvedExercises.includes(ex.id),
-  }));
+  const exercises = useMemo<ExerciseRowData[]>(() => {
+    const solvedSet = new Set(learning.solvedExercises);
+    return data.exercises.map((ex, i) => ({
+      id: ex.id,
+      index: i,
+      solved: solvedSet.has(ex.id),
+      optionCount: ex.answers.length,
+    }));
+  }, [data, learning.solvedExercises]);
 
-  const solvedCount = exercises.filter(e => e.solved).length;
+  const solvedCount = useMemo(
+    () => exercises.reduce((n, e) => (e.solved ? n + 1 : n), 0),
+    [exercises],
+  );
+
+  const handlePress = useCallback(
+    (exerciseId: string) => {
+      navigation.navigate('ExerciseDetail', { subject, exerciseId });
+    },
+    [navigation, subject],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<ExerciseRowData>) => (
+      <ExerciseRow item={item} color={color} onPress={handlePress} />
+    ),
+    [color, handlePress],
+  );
+
+  const keyExtractor = useCallback((item: ExerciseRowData) => item.id, []);
 
   return (
     <View style={styles.container}>
@@ -52,35 +115,14 @@ export function ExerciseListScreen() {
 
       <FlatList
         data={exercises}
-        keyExtractor={item => item.id}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        renderItem={({ item }) => (
-          <Pressable
-            style={[styles.exerciseRow, item.solved && styles.exerciseSolved]}
-            onPress={() =>
-              navigation.navigate('ExerciseDetail', {
-                subject,
-                exerciseId: item.id,
-              })
-            }
-          >
-            <View style={[styles.numberBadge, { backgroundColor: item.solved ? '#16a34a' : color + '33' }]}>
-              <Text style={[styles.numberText, { color: item.solved ? '#fff' : color }]}>
-                {item.index + 1}
-              </Text>
-            </View>
-            <View style={styles.exerciseContent}>
-              <Text style={styles.exercisePreview}>
-                Problem {item.index + 1}
-              </Text>
-              <Text style={[styles.exerciseStatus, { color: item.solved ? '#4ade80' : '#64748b' }]}>
-                {item.solved ? '✅ Solved' : `${item.answers.length} options`}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        )}
+        ItemSeparatorComponent={Separator}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={11}
+        removeClippedSubviews
       />
     </View>
   );

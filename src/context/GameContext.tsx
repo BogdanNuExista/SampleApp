@@ -19,6 +19,8 @@ import {
   TOTAL_LEARNING_EXERCISES,
 } from '../constants/learningContent';
 import { AchievementId, ACHIEVEMENTS, UserAchievement } from '../types/achievements';
+import { soundEffects } from '../services/SoundEffects';
+import { levelForXp } from './../constants/leveling';
 
 export type FocusSession = {
   id: string;
@@ -132,6 +134,63 @@ export type MaiaChessMatchResolution = {
   isRewardNew: boolean;
 };
 
+// ---- XP / leveling, daily quests, quiz & puzzle stats ----
+export type DailyProgress = {
+  dateISO: string;
+  focus: number;
+  exercises: number;
+  wins: number;
+  quizzes: number;
+  claimed: string[];
+};
+
+export type QuizStats = {
+  taken: number;
+  bestScorePct: number;
+  totalQuestions: number;
+  totalCorrect: number;
+};
+
+export type PuzzleStats = {
+  attempted: number;
+  solved: number;
+  solvedIds: string[];
+};
+
+export type QuestMetric = 'focus' | 'exercises' | 'wins';
+export type QuestDef = {
+  id: string;
+  label: string;
+  metric: QuestMetric;
+  target: number;
+  coinReward: number;
+  xpReward: number;
+};
+
+export const DAILY_QUESTS: QuestDef[] = [
+  { id: 'daily-focus', label: 'Complete a focus session', metric: 'focus', target: 1, coinReward: 10, xpReward: 30 },
+  { id: 'daily-study', label: 'Solve 5 exercises', metric: 'exercises', target: 5, coinReward: 15, xpReward: 40 },
+  { id: 'daily-victory', label: 'Win any game', metric: 'wins', target: 1, coinReward: 10, xpReward: 30 },
+];
+
+export type QuestView = QuestDef & {
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+};
+
+export function getQuestViews(daily: DailyProgress): QuestView[] {
+  return DAILY_QUESTS.map(q => {
+    const progress = Math.min(daily[q.metric], q.target);
+    return {
+      ...q,
+      progress,
+      completed: progress >= q.target,
+      claimed: daily.claimed.includes(q.id),
+    };
+  });
+}
+
 export type GameState = {
   profileName: string;
   coins: number;
@@ -156,6 +215,10 @@ export type GameState = {
   musicEnabled: boolean;
   soundEffectsEnabled: boolean;
   learning: LearningProgress;
+  xp: number;
+  daily: DailyProgress;
+  quizStats: QuizStats;
+  puzzleStats: PuzzleStats;
 };
 
 const STORAGE_KEY = 'retro-arcade-study-state-v1';
@@ -202,6 +265,44 @@ const createInitialSudokuState = (): SudokuProgress => ({
   },
 });
 
+// XP awarded per activity.
+const XP_REWARDS = {
+  exercise: 10,
+  chess: { easy: 10, normal: 20, hard: 35 } as Record<ChessDifficulty, number>,
+  maia: { apprentice: 15, adept: 30, master: 50 } as Record<MaiaChessDifficulty, number>,
+  sudoku: { easy: 10, medium: 20, expert: 35 } as Record<SudokuDifficulty, number>,
+  quizPerCorrect: 10,
+  puzzle: 25,
+};
+
+const createInitialDaily = (): DailyProgress => ({
+  dateISO: dayKeyFromTimestamp(Date.now()),
+  focus: 0,
+  exercises: 0,
+  wins: 0,
+  quizzes: 0,
+  claimed: [],
+});
+
+const createInitialQuizStats = (): QuizStats => ({
+  taken: 0,
+  bestScorePct: 0,
+  totalQuestions: 0,
+  totalCorrect: 0,
+});
+
+const createInitialPuzzleStats = (): PuzzleStats => ({
+  attempted: 0,
+  solved: 0,
+  solvedIds: [],
+});
+
+// Reset the daily counters when the calendar day changes.
+const rollDaily = (daily: DailyProgress, todayKey: string): DailyProgress =>
+  daily && daily.dateISO === todayKey
+    ? daily
+    : { dateISO: todayKey, focus: 0, exercises: 0, wins: 0, quizzes: 0, claimed: [] };
+
 const initialState: GameState = {
   profileName: 'Player One',
   coins: 0,
@@ -229,6 +330,10 @@ const initialState: GameState = {
     unlockedSubjects: [],
     solvedExercises: [],
   },
+  xp: 0,
+  daily: createInitialDaily(),
+  quizStats: createInitialQuizStats(),
+  puzzleStats: createInitialPuzzleStats(),
 };
 
 type Action =
@@ -277,6 +382,8 @@ type Action =
       type: 'COMPLETE_CHESS_GAME';
       payload: {
         coinsEarned: number;
+        xpEarned: number;
+        won: boolean;
         nextStats: Record<ChessDifficulty, ChessRecord>;
         nextUnlocked: ChessUnlockState;
         rewardItem?: InventoryItem | null;
@@ -286,6 +393,8 @@ type Action =
       type: 'COMPLETE_MAIA_CHESS_GAME';
       payload: {
         coinsEarned: number;
+        xpEarned: number;
+        won: boolean;
         nextStats: Record<MaiaChessDifficulty, ChessRecord>;
         rewardItem?: InventoryItem | null;
       };
@@ -307,6 +416,22 @@ type Action =
   | { type: 'TOGGLE_SOUND_EFFECTS'; payload?: { enabled: boolean } }
   | { type: 'UNLOCK_SUBJECT'; payload: { subject: LearningSubject; cost: number } }
   | { type: 'MARK_EXERCISE_SOLVED'; payload: { exerciseId: string } }
+  | {
+      type: 'COMPLETE_QUIZ';
+      payload: {
+        correct: number;
+        total: number;
+        coinsEarned: number;
+        xpEarned: number;
+        solvedIds: string[];
+      };
+    }
+  | {
+      type: 'COMPLETE_PUZZLE';
+      payload: { puzzleId: string; solved: boolean; coinsEarned: number };
+    }
+  | { type: 'CLAIM_QUEST'; payload: { questId: string } }
+  | { type: 'REFRESH_DAILY' }
   | { type: 'HYDRATE'; payload: GameState };
 
 function generateId() {
@@ -357,16 +482,19 @@ function reducer(state: GameState, action: Action): GameState {
         location,
       };
       const focusSessions = [focusSession, ...state.focusSessions].slice(0, 5);
+      const daily = rollDaily(state.daily, dayKey);
 
       return {
         ...state,
         coins: state.coins + coinsEarned,
         totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        xp: state.xp + durationMinutes,
         streak: newStreak,
         bestSessionMinutes: Math.max(state.bestSessionMinutes, durationMinutes),
         totalFocusMinutes: state.totalFocusMinutes + durationMinutes,
         lastSessionDateISO: dayKey,
         focusSessions,
+        daily: { ...daily, focus: daily.focus + 1 },
       };
     }
     case 'ADD_FLASHCARD': {
@@ -414,6 +542,7 @@ function reducer(state: GameState, action: Action): GameState {
       const currentHighScore = state.arcadeHighScores[game];
       const isNewHighScore = score > currentHighScore;
       const bonusCoins = Math.max(0, Math.floor(score / 15));
+      const xpEarned = Math.max(0, Math.floor(score / 30));
       return {
         ...state,
         arcadeHighScores: {
@@ -422,6 +551,7 @@ function reducer(state: GameState, action: Action): GameState {
         },
         coins: state.coins + bonusCoins,
         totalCoinsEarned: state.totalCoinsEarned + bonusCoins,
+        xp: state.xp + xpEarned,
       };
     }
     case 'SPEND_COINS': {
@@ -449,14 +579,17 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, activeSkin: skinId };
     }
     case 'COMPLETE_CHESS_GAME': {
-      const { coinsEarned, nextStats, nextUnlocked, rewardItem } = action.payload;
+      const { coinsEarned, xpEarned, won, nextStats, nextUnlocked, rewardItem } = action.payload;
       const inventory = rewardItem
         ? [...state.inventory, rewardItem]
         : state.inventory;
+      const daily = rollDaily(state.daily, dayKeyFromTimestamp(Date.now()));
       return {
         ...state,
         coins: state.coins + coinsEarned,
         totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        xp: state.xp + xpEarned,
+        daily: won ? { ...daily, wins: daily.wins + 1 } : daily,
         chess: {
           stats: {
             easy: { ...nextStats.easy },
@@ -470,14 +603,17 @@ function reducer(state: GameState, action: Action): GameState {
       };
     }
     case 'COMPLETE_MAIA_CHESS_GAME': {
-      const { coinsEarned, nextStats, rewardItem } = action.payload;
+      const { coinsEarned, xpEarned, won, nextStats, rewardItem } = action.payload;
       const inventory = rewardItem
         ? [...state.inventory, rewardItem]
         : state.inventory;
+      const daily = rollDaily(state.daily, dayKeyFromTimestamp(Date.now()));
       return {
         ...state,
         coins: state.coins + coinsEarned,
         totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        xp: state.xp + xpEarned,
+        daily: won ? { ...daily, wins: daily.wins + 1 } : daily,
         maiaChess: {
           stats: {
             apprentice: { ...nextStats.apprentice },
@@ -505,10 +641,14 @@ function reducer(state: GameState, action: Action): GameState {
     }
     case 'COMPLETE_SUDOKU_GAME': {
       const { difficulty, completed, coinsEarned } = action.payload;
+      const xpEarned = completed ? XP_REWARDS.sudoku[difficulty] : 0;
+      const daily = rollDaily(state.daily, dayKeyFromTimestamp(Date.now()));
       return {
         ...state,
         coins: state.coins + coinsEarned,
         totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        xp: state.xp + xpEarned,
+        daily: completed ? { ...daily, wins: daily.wins + 1 } : daily,
         sudoku: {
           ...state.sudoku,
           totalGames: state.sudoku.totalGames + 1,
@@ -675,6 +815,37 @@ function reducer(state: GameState, action: Action): GameState {
             ? persisted.learning.solvedExercises
             : [],
         },
+        xp: typeof persisted.xp === 'number' ? persisted.xp : 0,
+        daily: persisted.daily && typeof persisted.daily.dateISO === 'string'
+          ? rollDaily(
+              {
+                dateISO: persisted.daily.dateISO,
+                focus: persisted.daily.focus ?? 0,
+                exercises: persisted.daily.exercises ?? 0,
+                wins: persisted.daily.wins ?? 0,
+                quizzes: persisted.daily.quizzes ?? 0,
+                claimed: Array.isArray(persisted.daily.claimed) ? persisted.daily.claimed : [],
+              },
+              dayKeyFromTimestamp(Date.now()),
+            )
+          : createInitialDaily(),
+        quizStats: persisted.quizStats
+          ? {
+              taken: persisted.quizStats.taken ?? 0,
+              bestScorePct: persisted.quizStats.bestScorePct ?? 0,
+              totalQuestions: persisted.quizStats.totalQuestions ?? 0,
+              totalCorrect: persisted.quizStats.totalCorrect ?? 0,
+            }
+          : createInitialQuizStats(),
+        puzzleStats: persisted.puzzleStats
+          ? {
+              attempted: persisted.puzzleStats.attempted ?? 0,
+              solved: persisted.puzzleStats.solved ?? 0,
+              solvedIds: Array.isArray(persisted.puzzleStats.solvedIds)
+                ? persisted.puzzleStats.solvedIds
+                : [],
+            }
+          : createInitialPuzzleStats(),
       };
     }
     case 'UNLOCK_ACHIEVEMENT': {
@@ -720,13 +891,88 @@ function reducer(state: GameState, action: Action): GameState {
     case 'MARK_EXERCISE_SOLVED': {
       const { exerciseId } = action.payload;
       if (state.learning.solvedExercises.includes(exerciseId)) return state;
+      const daily = rollDaily(state.daily, dayKeyFromTimestamp(Date.now()));
       return {
         ...state,
+        xp: state.xp + XP_REWARDS.exercise,
+        daily: { ...daily, exercises: daily.exercises + 1 },
         learning: {
           ...state.learning,
           solvedExercises: [...state.learning.solvedExercises, exerciseId],
         },
       };
+    }
+    case 'COMPLETE_QUIZ': {
+      const { correct, total, coinsEarned, xpEarned, solvedIds } = action.payload;
+      const daily = rollDaily(state.daily, dayKeyFromTimestamp(Date.now()));
+      // Merge newly-solved exercises (correct answers count as real solves).
+      const newlySolved = solvedIds.filter(
+        id => !state.learning.solvedExercises.includes(id),
+      );
+      const scorePct = total > 0 ? Math.round((correct / total) * 100) : 0;
+      return {
+        ...state,
+        coins: state.coins + coinsEarned,
+        totalCoinsEarned: state.totalCoinsEarned + coinsEarned,
+        xp: state.xp + xpEarned,
+        daily: {
+          ...daily,
+          quizzes: daily.quizzes + 1,
+          exercises: daily.exercises + newlySolved.length,
+        },
+        learning: {
+          ...state.learning,
+          solvedExercises: [...state.learning.solvedExercises, ...newlySolved],
+        },
+        quizStats: {
+          taken: state.quizStats.taken + 1,
+          bestScorePct: Math.max(state.quizStats.bestScorePct, scorePct),
+          totalQuestions: state.quizStats.totalQuestions + total,
+          totalCorrect: state.quizStats.totalCorrect + correct,
+        },
+      };
+    }
+    case 'COMPLETE_PUZZLE': {
+      const { puzzleId, solved, coinsEarned } = action.payload;
+      const alreadySolved = state.puzzleStats.solvedIds.includes(puzzleId);
+      const daily = rollDaily(state.daily, dayKeyFromTimestamp(Date.now()));
+      // Only award coins/xp/win-credit the first time a puzzle is solved.
+      const award = solved && !alreadySolved;
+      return {
+        ...state,
+        coins: award ? state.coins + coinsEarned : state.coins,
+        totalCoinsEarned: award ? state.totalCoinsEarned + coinsEarned : state.totalCoinsEarned,
+        xp: award ? state.xp + XP_REWARDS.puzzle : state.xp,
+        daily: award ? { ...daily, wins: daily.wins + 1 } : daily,
+        puzzleStats: {
+          attempted: state.puzzleStats.attempted + 1,
+          solved: award ? state.puzzleStats.solved + 1 : state.puzzleStats.solved,
+          solvedIds: award
+            ? [...state.puzzleStats.solvedIds, puzzleId]
+            : state.puzzleStats.solvedIds,
+        },
+      };
+    }
+    case 'CLAIM_QUEST': {
+      const { questId } = action.payload;
+      const today = dayKeyFromTimestamp(Date.now());
+      const daily = rollDaily(state.daily, today);
+      const quest = DAILY_QUESTS.find(q => q.id === questId);
+      if (!quest) return state;
+      if (daily.claimed.includes(questId)) return state;
+      if (daily[quest.metric] < quest.target) return state; // not completed
+      return {
+        ...state,
+        coins: state.coins + quest.coinReward,
+        totalCoinsEarned: state.totalCoinsEarned + quest.coinReward,
+        xp: state.xp + quest.xpReward,
+        daily: { ...daily, claimed: [...daily.claimed, questId] },
+      };
+    }
+    case 'REFRESH_DAILY': {
+      const today = dayKeyFromTimestamp(Date.now());
+      if (state.daily.dateISO === today) return state;
+      return { ...state, daily: rollDaily(state.daily, today) };
     }
     default:
       return state;
@@ -737,7 +983,15 @@ export type GameContextValue = {
   state: GameState;
   isHydrated: boolean;
   setProfileName: (name: string) => void;
-  completeSession: (durationMinutes: number) => void;
+  completeSession: (
+    durationMinutes: number,
+    location?: {
+      latitude: number;
+      longitude: number;
+      city?: string;
+      country?: string;
+    },
+  ) => void;
   addFlashcard: (input: {
     title: string;
     description: string;
@@ -764,6 +1018,16 @@ export type GameContextValue = {
   toggleSoundEffects: (enabled?: boolean) => void;
   unlockSubject: (subject: LearningSubject, cost: number) => boolean;
   markExerciseSolved: (exerciseId: string) => void;
+  completeQuiz: (result: {
+    correct: number;
+    total: number;
+    coinsEarned: number;
+    xpEarned: number;
+    solvedIds: string[];
+  }) => void;
+  completePuzzle: (puzzleId: string, solved: boolean, coinsEarned: number) => void;
+  claimQuest: (questId: string) => void;
+  refreshDailyQuests: () => void;
 };
 
 const GameContext = createContext<GameContextValue | undefined>(undefined);
@@ -772,6 +1036,17 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isHydrated, setIsHydrated] = useState(false);
   const previousAchievementCount = useRef(0);
+  const previousLevel = useRef(1);
+
+  // Preload sound effects once.
+  useEffect(() => {
+    soundEffects.preload();
+  }, []);
+
+  // Keep the sound-effects service in sync with the user's preference.
+  useEffect(() => {
+    soundEffects.setEnabled(state.soundEffectsEnabled);
+  }, [state.soundEffectsEnabled]);
 
   useEffect(() => {
     const loadState = async () => {
@@ -785,8 +1060,9 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             inventory: [],
           };
           dispatch({ type: 'HYDRATE', payload: { ...baseline, ...parsed } });
-          // Set initial count to avoid vibration on app load
+          // Set initial values to avoid feedback firing on app load
           previousAchievementCount.current = (parsed.achievements || []).length;
+          previousLevel.current = levelForXp(parsed.xp ?? 0);
         }
       } catch (error) {
         console.warn('Failed to load saved state', error);
@@ -807,6 +1083,7 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const currentCount = state.achievements.length;
     if (currentCount > previousAchievementCount.current) {
       // New achievement unlocked!
+      soundEffects.play('win');
       try {
         if (Platform.OS === 'android' || Platform.OS === 'ios') {
           // Success pattern: double buzz
@@ -819,6 +1096,23 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
     previousAchievementCount.current = currentCount;
   }, [state.achievements.length, isHydrated]);
+
+  // Play a fanfare + buzz when the player levels up.
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+    const currentLevel = levelForXp(state.xp);
+    if (currentLevel > previousLevel.current) {
+      soundEffects.play('levelup');
+      try {
+        Vibration.vibrate([0, 120, 60, 220]);
+      } catch (error) {
+        console.warn('Vibration failed:', error);
+      }
+    }
+    previousLevel.current = currentLevel;
+  }, [state.xp, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -953,6 +1247,30 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           case 'book-master':
             shouldUnlock = state.learning.solvedExercises.length >= TOTAL_LEARNING_EXERCISES;
             break;
+          case 'quiz-rookie':
+            shouldUnlock = state.quizStats.taken >= 1;
+            break;
+          case 'quiz-veteran':
+            shouldUnlock = state.quizStats.taken >= 10;
+            break;
+          case 'quiz-ace':
+            shouldUnlock = state.quizStats.bestScorePct >= 100;
+            break;
+          case 'tactician':
+            shouldUnlock = state.puzzleStats.solved >= 1;
+            break;
+          case 'mate-hunter':
+            shouldUnlock = state.puzzleStats.solved >= 10;
+            break;
+          case 'checkmate-virtuoso':
+            shouldUnlock = state.puzzleStats.solved >= 30;
+            break;
+          case 'rising-star':
+            shouldUnlock = levelForXp(state.xp) >= 5;
+            break;
+          case 'seasoned-adventurer':
+            shouldUnlock = levelForXp(state.xp) >= 10;
+            break;
         }
 
         if (shouldUnlock) {
@@ -983,6 +1301,10 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     state.achievements.length,
     state.inventory, // Changed to entire array to detect type changes
     state.learning.solvedExercises.length,
+    state.quizStats.taken,
+    state.quizStats.bestScorePct,
+    state.puzzleStats.solved,
+    state.xp,
   ]);
 
   const value = useMemo<GameContextValue>(() => {
@@ -1049,6 +1371,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         type: 'COMPLETE_CHESS_GAME',
         payload: {
           coinsEarned,
+          xpEarned: normalizedOutcome === 'win' ? XP_REWARDS.chess[difficulty] : 0,
+          won: normalizedOutcome === 'win',
           nextStats,
           nextUnlocked,
           rewardItem,
@@ -1113,6 +1437,8 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         type: 'COMPLETE_MAIA_CHESS_GAME',
         payload: {
           coinsEarned,
+          xpEarned: normalizedOutcome === 'win' ? XP_REWARDS.maia[difficulty] : 0,
+          won: normalizedOutcome === 'win',
           nextStats,
           rewardItem,
         },
@@ -1201,6 +1527,11 @@ export const GameProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       },
       markExerciseSolved: (exerciseId: string) =>
         dispatch({ type: 'MARK_EXERCISE_SOLVED', payload: { exerciseId } }),
+      completeQuiz: result => dispatch({ type: 'COMPLETE_QUIZ', payload: result }),
+      completePuzzle: (puzzleId, solved, coinsEarned) =>
+        dispatch({ type: 'COMPLETE_PUZZLE', payload: { puzzleId, solved, coinsEarned } }),
+      claimQuest: questId => dispatch({ type: 'CLAIM_QUEST', payload: { questId } }),
+      refreshDailyQuests: () => dispatch({ type: 'REFRESH_DAILY' }),
     };
   }, [state, isHydrated]);
 

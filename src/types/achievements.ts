@@ -36,7 +36,15 @@ export type AchievementId =
   | 'algebra-scholar'
   | 'analysis-scholar'
   | 'trig-scholar'
-  | 'book-master';
+  | 'book-master'
+  | 'quiz-rookie'
+  | 'quiz-ace'
+  | 'quiz-veteran'
+  | 'tactician'
+  | 'mate-hunter'
+  | 'checkmate-virtuoso'
+  | 'rising-star'
+  | 'seasoned-adventurer';
 
 export type Achievement = {
   id: AchievementId;
@@ -44,7 +52,7 @@ export type Achievement = {
   description: string;
   icon: string;
   requirement: number;
-  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade' | 'inventory' | 'learning';
+  category: 'focus' | 'chess' | 'maia' | 'sudoku' | 'journal' | 'coins' | 'arcade' | 'inventory' | 'learning' | 'quiz' | 'puzzle' | 'level';
 };
 
 export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
@@ -311,6 +319,70 @@ export const ACHIEVEMENTS: Record<AchievementId, Achievement> = {
     icon: '🎓',
     requirement: TOTAL_LEARNING_EXERCISES,
     category: 'learning',
+  },
+  'quiz-rookie': {
+    id: 'quiz-rookie',
+    title: 'Mock Rookie',
+    description: 'Complete your first mock exam',
+    icon: '📝',
+    requirement: 1,
+    category: 'quiz',
+  },
+  'quiz-veteran': {
+    id: 'quiz-veteran',
+    title: 'Exam Veteran',
+    description: 'Complete 10 mock exams',
+    icon: '🗂️',
+    requirement: 10,
+    category: 'quiz',
+  },
+  'quiz-ace': {
+    id: 'quiz-ace',
+    title: 'Top of the Class',
+    description: 'Score 100% on a mock exam',
+    icon: '💯',
+    requirement: 100,
+    category: 'quiz',
+  },
+  'tactician': {
+    id: 'tactician',
+    title: 'Tactician',
+    description: 'Solve your first chess puzzle',
+    icon: '♟️',
+    requirement: 1,
+    category: 'puzzle',
+  },
+  'mate-hunter': {
+    id: 'mate-hunter',
+    title: 'Mate Hunter',
+    description: 'Solve 10 chess puzzles',
+    icon: '🎯',
+    requirement: 10,
+    category: 'puzzle',
+  },
+  'checkmate-virtuoso': {
+    id: 'checkmate-virtuoso',
+    title: 'Checkmate Virtuoso',
+    description: 'Solve 30 chess puzzles',
+    icon: '👑',
+    requirement: 30,
+    category: 'puzzle',
+  },
+  'rising-star': {
+    id: 'rising-star',
+    title: 'Rising Star',
+    description: 'Reach level 5',
+    icon: '⭐',
+    requirement: 5,
+    category: 'level',
+  },
+  'seasoned-adventurer': {
+    id: 'seasoned-adventurer',
+    title: 'Seasoned Adventurer',
+    description: 'Reach level 10',
+    icon: '🌠',
+    requirement: 10,
+    category: 'level',
   },
 };
 

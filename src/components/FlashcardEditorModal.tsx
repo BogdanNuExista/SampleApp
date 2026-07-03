@@ -122,23 +122,16 @@ export function FlashcardEditorModal({
 
   const handleTakePhoto = async () => {
     try {
-      // Always request camera permission on Android (asks every time if denied)
+      // Always request camera permission on Android (asks every time if denied).
+      // If not granted, still try to launch - the library handles permission errors.
       if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA,
-          {
-            title: 'Camera Permission',
-            message: 'This app needs camera access to take photos for your journal.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          },
-        );
-        
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          // Still try to launch - the library will handle permission errors
-          console.log('Camera permission not granted:', granted);
-        }
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+          title: 'Camera Permission',
+          message: 'This app needs camera access to take photos for your journal.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        });
       }
       
       const result = await launchCamera({

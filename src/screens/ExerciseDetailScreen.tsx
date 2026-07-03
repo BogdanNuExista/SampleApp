@@ -15,6 +15,7 @@ import {
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { palette } from '../theme/colors';
 import { MathRenderer } from '../components/MathRenderer';
+import { soundEffects } from '../services/SoundEffects';
 
 type RouteProps = RouteProp<RootStackParamList, 'ExerciseDetail'>;
 
@@ -45,6 +46,9 @@ export function ExerciseDetailScreen() {
     setHasAnswered(true);
     if (answerId === exercise.correctAnswer) {
       markExerciseSolved(exerciseId);
+      soundEffects.play('correct');
+    } else {
+      soundEffects.play('wrong');
     }
   };
 

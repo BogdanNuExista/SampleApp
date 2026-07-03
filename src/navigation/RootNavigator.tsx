@@ -13,6 +13,8 @@ import { StatisticsScreen } from '../screens/StatisticsScreen';
 import { LearningHubScreen } from '../screens/LearningHubScreen';
 import { ExerciseListScreen } from '../screens/ExerciseListScreen';
 import { ExerciseDetailScreen } from '../screens/ExerciseDetailScreen';
+import { QuizScreen } from '../screens/QuizScreen';
+import { PuzzleScreen } from '../screens/PuzzleScreen';
 import { LearningSubject } from '../context/GameContext';
 import { palette } from '../theme/colors';
 
@@ -31,6 +33,8 @@ export type RootStackParamList = {
   Inventory: undefined;
   ExerciseList: { subject: LearningSubject };
   ExerciseDetail: { subject: LearningSubject; exerciseId: string };
+  Quiz: undefined;
+  Puzzles: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -164,6 +168,26 @@ export function RootNavigator() {
             headerStyle: { backgroundColor: '#0f172a' },
             headerTintColor: palette.neonYellow,
           })}
+        />
+        <Stack.Screen
+          name="Quiz"
+          component={QuizScreen}
+          options={{
+            headerShown: true,
+            title: 'Mock Exam',
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          }}
+        />
+        <Stack.Screen
+          name="Puzzles"
+          component={PuzzleScreen}
+          options={{
+            headerShown: true,
+            title: 'Chess Puzzles',
+            headerStyle: { backgroundColor: '#0f172a' },
+            headerTintColor: palette.neonYellow,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

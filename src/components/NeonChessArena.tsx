@@ -6,10 +6,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
-import { pieceImages, ChessPieceKey, fileLabels } from '../constants/chessAssets';
+import { ChessBoard } from './ChessBoard';
 import { InventoryCatalogItem } from '../constants/inventoryCatalog';
 import { palette } from '../theme/colors';
 import {
@@ -28,9 +27,6 @@ const PIECE_VALUES: Record<string, number> = {
   q: 9,
   k: 0,
 };
-
-const rankLabels = [8, 7, 6, 5, 4, 3, 2, 1];
-const fileLetters = fileLabels.split('');
 
 const difficultyMeta: Record<ChessDifficulty, { label: string; blurb: string }> = {
   easy: {
@@ -81,20 +77,7 @@ export function NeonChessArena() {
   const [isGameActive, setIsGameActive] = useState(true);
   const [statusLabel, setStatusLabel] = useState('You are playing white. Make the first move.');
   const [result, setResult] = useState<ResultModalState | null>(null);
-
-  console.log('NeonChessArena render - result state:', result);
-
-  const { width: windowWidth } = useWindowDimensions();
-  const horizontalPadding = 40;
-  const rankLabelWidth = 30;
-  const availableWidth = Math.max(280, windowWidth - horizontalPadding);
-  const squareSize = Math.max(36, Math.floor((availableWidth - rankLabelWidth) / 8));
-  const boardWidth = rankLabelWidth + squareSize * 8;
-  const boardHeight = squareSize * 8;
-  const fileLabelHeight = 28;
-  const pieceSize = Math.floor(squareSize * 0.82);
-  const captureRingSize = pieceSize + 6;
-  const targetDotSize = Math.max(10, Math.floor(squareSize * 0.32));
+  const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
 
   const availableDifficulty = useMemo(() => {
     if (difficulty === 'hard' && !unlocked.hard) {
@@ -122,19 +105,34 @@ export function NeonChessArena() {
     };
   }, []);
 
-  const resetGame = (nextDifficulty: ChessDifficulty = difficulty) => {
+  const resetGame = (
+    nextDifficulty: ChessDifficulty = difficulty,
+    color: 'w' | 'b' = playerColor,
+  ) => {
     if (aiMoveTimeout.current) {
       clearTimeout(aiMoveTimeout.current);
       aiMoveTimeout.current = null;
     }
     chessRef.current = new Chess();
-  setBoardState(snapshotBoard(chessRef.current));
+    setBoardState(snapshotBoard(chessRef.current));
     setSelectedSquare(null);
     setLegalTargets([]);
     setIsThinking(false);
     setIsGameActive(true);
     setResult(null);
-    setStatusLabel(`You are playing white on ${difficultyMeta[nextDifficulty].label} difficulty.`);
+    setStatusLabel(
+      `You are playing ${color === 'w' ? 'white' : 'black'} on ${difficultyMeta[nextDifficulty].label} difficulty.`,
+    );
+    // If the player chose black, the AI plays white and moves first.
+    if (color === 'b') {
+      triggerComputerMove('w');
+    }
+  };
+
+  const handleFlipBoard = () => {
+    const next = playerColor === 'w' ? 'b' : 'w';
+    setPlayerColor(next);
+    resetGame(difficulty, next);
   };
 
   const handleDifficultyPress = (level: ChessDifficulty) => {
@@ -156,7 +154,7 @@ export function NeonChessArena() {
     }
 
     const game = chessRef.current;
-    if (game.turn() !== 'w') {
+    if (game.turn() !== playerColor) {
       return;
     }
 
@@ -167,8 +165,8 @@ export function NeonChessArena() {
     }
 
     const piece = game.get(square as Square);
-    if (piece?.color === 'w') {
-  const moves = game.moves({ square: square as Square, verbose: true }) as Move[];
+    if (piece?.color === playerColor) {
+      const moves = game.moves({ square: square as Square, verbose: true }) as Move[];
       setSelectedSquare(square);
       setLegalTargets(moves.map(move => move.to));
       return;
@@ -182,13 +180,13 @@ export function NeonChessArena() {
         setLegalTargets([]);
         const finished = evaluateGameState('player');
         if (!finished) {
-          triggerComputerMove();
+          triggerComputerMove(playerColor === 'w' ? 'b' : 'w');
         }
       }
     }
   };
 
-  const triggerComputerMove = () => {
+  const triggerComputerMove = (aiColor: 'w' | 'b') => {
     if (aiMoveTimeout.current) {
       clearTimeout(aiMoveTimeout.current);
     }
@@ -197,7 +195,7 @@ export function NeonChessArena() {
     const delay = difficulty === 'hard' ? 650 : difficulty === 'normal' ? 520 : 400;
     aiMoveTimeout.current = setTimeout(() => {
       const game = chessRef.current;
-      const move = selectComputerMove(game, difficulty);
+      const move = selectComputerMove(game, difficulty, aiColor);
       if (move) {
         game.move(move);
       }
@@ -239,7 +237,6 @@ export function NeonChessArena() {
         : 'Balanced outcome. Call it a draw.',
     );
     const resolution: ChessMatchResolution = finishChessMatch({ difficulty, outcome });
-    console.log('Chess game finished!', { outcome, resolution });
     const resultData = {
       outcome,
       coinsEarned: resolution.coinsEarned,
@@ -249,7 +246,6 @@ export function NeonChessArena() {
       newlyUnlocked: resolution.newlyUnlocked,
       difficulty,
     };
-    console.log('Setting result state:', resultData);
     setResult(resultData);
   };
 
@@ -313,104 +309,19 @@ export function NeonChessArena() {
         </Text>
       ) : null}
 
-      <View style={styles.boardContainer}>
-        <View
-          style={[
-            styles.boardWrapper,
-            {
-              width: boardWidth,
-              height: boardHeight,
-              borderRadius: Math.max(16, squareSize * 0.65),
-            },
-          ]}
-        >
-          {boardState.map((rank: Array<Piece | null>, rankIndex: number) => (
-            <View
-              key={`rank-${rankIndex}`}
-              style={[styles.boardRow, { height: squareSize }]}
-            >
-              <View
-                style={[styles.rankCell, { width: rankLabelWidth, height: squareSize }]}
-              >
-                <Text style={styles.rankLabel}>{rankLabels[rankIndex]}</Text>
-              </View>
-              {rank.map((piece: Piece | null, fileIndex: number) => {
-                const square = `${fileLetters[fileIndex]}${rankLabels[rankIndex]}`;
-                const isDark = (rankIndex + fileIndex) % 2 === 1;
-                const isSelected = selectedSquare === square;
-                const isTarget = legalTargets.includes(square);
-                const pieceKey = piece
-                  ? (`${piece.color === 'w' ? 'w' : 'b'}${piece.type.toUpperCase()}` as ChessPieceKey)
-                  : null;
-                return (
-                  <Pressable
-                    key={square}
-                    style={[
-                      styles.square,
-                      {
-                        width: squareSize,
-                        height: squareSize,
-                      },
-                      isDark && styles.squareDark,
-                      isSelected && styles.squareSelected,
-                    ]}
-                    onPress={() => handleSquarePress(square)}
-                  >
-                    {pieceKey ? (
-                      <Image
-                        source={pieceImages[pieceKey]}
-                        style={{ width: pieceSize, height: pieceSize }}
-                      />
-                    ) : null}
-                    {!pieceKey && isTarget ? (
-                      <View
-                        style={[
-                          styles.targetDot,
-                          {
-                            width: targetDotSize,
-                            height: targetDotSize,
-                            borderRadius: targetDotSize / 2,
-                          },
-                        ]}
-                      />
-                    ) : null}
-                    {pieceKey && isTarget ? (
-                      <View
-                        style={[
-                          styles.captureRing,
-                          {
-                            width: captureRingSize,
-                            height: captureRingSize,
-                            borderRadius: captureRingSize / 2,
-                          },
-                        ]}
-                      />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-        </View>
-        <View
-          style={[
-            styles.fileLabelRow,
-            { width: boardWidth, height: fileLabelHeight },
-          ]}
-        >
-          <View
-            style={[styles.fileCorner, { width: rankLabelWidth, height: fileLabelHeight }]}
-          />
-          {fileLetters.map(letter => (
-            <View
-              key={letter}
-              style={[styles.fileCell, { width: squareSize, height: fileLabelHeight }]}
-            >
-              <Text style={styles.fileLabel}>{letter.toUpperCase()}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      <Pressable style={styles.flipButton} onPress={handleFlipBoard}>
+        <Text style={styles.flipButtonText}>
+          🔄 Play as {playerColor === 'w' ? 'Black' : 'White'}
+        </Text>
+      </Pressable>
+
+      <ChessBoard
+        boardState={boardState}
+        selectedSquare={selectedSquare}
+        legalTargets={legalTargets}
+        onSquarePress={handleSquarePress}
+        orientation={playerColor === 'w' ? 'white' : 'black'}
+      />
 
       <View style={styles.statusBlock}>
         <Text style={styles.statusText}>{statusLabel}</Text>
@@ -477,7 +388,7 @@ export function NeonChessArena() {
   );
 }
 
-function selectComputerMove(game: Chess, difficulty: ChessDifficulty): Move | null {
+function selectComputerMove(game: Chess, difficulty: ChessDifficulty, aiColor: 'w' | 'b'): Move | null {
   const moves = game.moves({ verbose: true }) as Move[];
   if (moves.length === 0) {
     return null;
@@ -487,20 +398,23 @@ function selectComputerMove(game: Chess, difficulty: ChessDifficulty): Move | nu
     return moves[index];
   }
   if (difficulty === 'normal') {
-    return chooseDepthOneMove(game, moves);
+    return chooseDepthOneMove(game, moves, aiColor);
   }
-  return chooseDepthTwoMove(game, moves);
+  return chooseDepthTwoMove(game, moves, aiColor);
 }
 
-function chooseDepthOneMove(game: Chess, moves: Move[]): Move {
+// evaluateBoard is white-positive; aiScore is from the AI's own perspective so
+// the same logic works whether the AI plays white or black.
+function chooseDepthOneMove(game: Chess, moves: Move[], aiColor: 'w' | 'b'): Move {
+  const sign = aiColor === 'w' ? 1 : -1;
   let bestMove = moves[0];
-  let bestScore = Number.POSITIVE_INFINITY;
+  let bestScore = Number.NEGATIVE_INFINITY;
   moves.forEach((move: Move) => {
     game.move(move);
-    const score = evaluateBoard(game);
+    const aiScore = sign * evaluateBoard(game);
     game.undo();
-    const jitter = score + Math.random() * 0.1;
-    if (jitter < bestScore) {
+    const jitter = aiScore + Math.random() * 0.1;
+    if (jitter > bestScore) {
       bestScore = jitter;
       bestMove = move;
     }
@@ -508,28 +422,30 @@ function chooseDepthOneMove(game: Chess, moves: Move[]): Move {
   return bestMove;
 }
 
-function chooseDepthTwoMove(game: Chess, moves: Move[]): Move {
+function chooseDepthTwoMove(game: Chess, moves: Move[], aiColor: 'w' | 'b'): Move {
+  const sign = aiColor === 'w' ? 1 : -1;
   let bestMove = moves[0];
-  let bestScore = Number.POSITIVE_INFINITY;
+  let bestScore = Number.NEGATIVE_INFINITY;
   moves.forEach((move: Move) => {
     game.move(move);
     const opponentMoves = game.moves({ verbose: true }) as Move[];
-    let worstScore = Number.NEGATIVE_INFINITY;
+    // The opponent replies to minimise the AI's score.
+    let worstForAi = Number.POSITIVE_INFINITY;
     if (opponentMoves.length === 0) {
-      worstScore = evaluateBoard(game);
+      worstForAi = sign * evaluateBoard(game);
     } else {
-  opponentMoves.forEach((response: Move) => {
+      opponentMoves.forEach((response: Move) => {
         game.move(response);
-        const score = evaluateBoard(game);
+        const aiScore = sign * evaluateBoard(game);
         game.undo();
-        if (score > worstScore) {
-          worstScore = score;
+        if (aiScore < worstForAi) {
+          worstForAi = aiScore;
         }
       });
     }
     game.undo();
-    const adjustedScore = worstScore + Math.random() * 0.05;
-    if (adjustedScore < bestScore) {
+    const adjustedScore = worstForAi + Math.random() * 0.05;
+    if (adjustedScore > bestScore) {
       bestScore = adjustedScore;
       bestMove = move;
     }
@@ -612,68 +528,19 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 12,
   },
-  boardContainer: {
+  flipButton: {
     alignSelf: 'center',
-    alignItems: 'center',
-    gap: 6,
+    backgroundColor: '#111b34',
+    borderWidth: 1,
+    borderColor: palette.neonBlue + '55',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
-  boardWrapper: {
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#1f2a44',
-    backgroundColor: '#10172d',
-  },
-  boardRow: {
-    flexDirection: 'row',
-  },
-  rankCell: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0b1225',
-  },
-  rankLabel: {
-    color: '#64748b',
-    fontSize: 12,
-  },
-  square: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1e293b',
-    borderWidth: 0.5,
-    borderColor: '#172033',
-    position: 'relative',
-  },
-  squareDark: {
-    backgroundColor: '#111b2e',
-  },
-  squareSelected: {
-    borderColor: palette.neonPink,
-    borderWidth: 2,
-  },
-  piece: {
-  },
-  targetDot: {
-    backgroundColor: 'rgba(125, 211, 252, 0.8)',
-  },
-  captureRing: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: 'rgba(244, 114, 182, 0.8)',
-  },
-  fileLabelRow: {
-    flexDirection: 'row',
-  },
-  fileCorner: {
-    backgroundColor: '#0b1225',
-  },
-  fileCell: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0b1225',
-  },
-  fileLabel: {
-    color: '#64748b',
-    fontSize: 11,
+  flipButtonText: {
+    color: palette.neonBlue,
+    fontWeight: '700',
+    fontSize: 13,
   },
   statusBlock: {
     backgroundColor: '#101a34',

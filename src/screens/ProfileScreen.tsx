@@ -30,6 +30,8 @@ type Navigation = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
+const ProfileSeparator = () => <View style={styles.separator} />;
+
 export function ProfileScreen() {
   const navigation = useNavigation<Navigation>();
   const {
@@ -95,7 +97,7 @@ export function ProfileScreen() {
             data={bestSessions}
             keyExtractor={item => item.id}
             scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={ProfileSeparator}
             renderItem={({ item, index }) => (
               <View style={styles.historyRow}>
                 <Text style={styles.ranking}>#{index + 1}</Text>
